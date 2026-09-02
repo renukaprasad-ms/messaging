@@ -1,0 +1,98 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: messaging-backend
+    ports:
+      - "${BACKEND_HOST_PORT}:${BACKEND_CONTAINER_PORT}"
+    environment:
+      SERVER_PORT: ${BACKEND_CONTAINER_PORT}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:${POSTGRES_CONTAINER_PORT}/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: ${REDIS_CONTAINER_PORT}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:${KAFKA_CONTAINER_PORT}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - messaging
+
+  postgres:
+    image: ${POSTGRES_IMAGE}
+    container_name: messaging-postgres
+    ports:
+      - "${POSTGRES_HOST_PORT}:${POSTGRES_CONTAINER_PORT}"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGPORT: ${POSTGRES_CONTAINER_PORT}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - messaging
+
+  redis:
+    image: ${REDIS_IMAGE}
+    container_name: messaging-redis
+    ports:
+      - "${REDIS_HOST_PORT}:${REDIS_CONTAINER_PORT}"
+    command: ["redis-server", "--port", "${REDIS_CONTAINER_PORT}", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -p ${REDIS_CONTAINER_PORT} ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - messaging
+
+  kafka:
+    image: ${KAFKA_IMAGE}
+    container_name: messaging-kafka
+    ports:
+      - "${KAFKA_HOST_PORT}:${KAFKA_CONTAINER_PORT}"
+    environment:
+      KAFKA_NODE_ID: ${KAFKA_NODE_ID}
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: ${KAFKA_NODE_ID}@kafka:${KAFKA_CONTROLLER_PORT}
+      KAFKA_LISTENERS: PLAINTEXT://:${KAFKA_CONTAINER_PORT},CONTROLLER://:${KAFKA_CONTROLLER_PORT}
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_CONTAINER_PORT}
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:${KAFKA_CONTAINER_PORT} --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    networks:
+      - messaging
+
+volumes:
+  postgres-data:
+  redis-data:
+  kafka-data:
+
+networks:
+  messaging:
+    driver: bridge
