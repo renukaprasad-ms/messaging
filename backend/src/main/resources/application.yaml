@@ -11,10 +11,30 @@ spring:
       port: ${SPRING_DATA_REDIS_PORT:6379}
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:false}
+          starttls:
+            enable: ${SMTP_STARTTLS_ENABLE:false}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
 app:
+  notification:
+    email:
+      from: ${SMTP_FROM:no-reply@messaging.local}
+      otp-subject: ${OTP_EMAIL_SUBJECT:Your verification code}
+    otp:
+      ttl: ${OTP_TTL:5m}
+      resend-cooldown: ${OTP_RESEND_COOLDOWN:1m}
+      length: ${OTP_LENGTH:6}
+      max-attempts: ${OTP_MAX_ATTEMPTS:5}
   security:
     jwt:
       issuer: ${JWT_ISSUER:messaging}

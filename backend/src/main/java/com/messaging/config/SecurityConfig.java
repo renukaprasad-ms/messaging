@@ -1,4 +1,4 @@
-package com.messaging.security.config;
+package com.messaging.config;
 
 import com.messaging.security.jwt.JwtAuthenticationFilter;
 import com.messaging.security.jwt.JwtProperties;

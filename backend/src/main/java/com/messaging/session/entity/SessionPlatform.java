@@ -1,4 +1,4 @@
-package com.messaging.user.entity;
+package com.messaging.session.entity;
 
 public enum SessionPlatform {
     WEB,

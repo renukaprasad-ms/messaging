@@ -1,5 +1,6 @@
-package com.messaging.user.entity;
+package com.messaging.session.entity;
 
+import com.messaging.user.entity.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -38,7 +39,7 @@ public class UserSession {
     private SessionPlatform platform;
 
     @Setter
-    @Column(name = "refresh_token", nullable = false, length = 500)
+    @Column(name = "refresh_token", nullable = false, length = 64)
     private String refreshToken;
 
     @Setter
