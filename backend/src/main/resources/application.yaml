@@ -14,6 +14,25 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
+app:
+  security:
+    jwt:
+      issuer: ${JWT_ISSUER:messaging}
+      private-key: ${JWT_PRIVATE_KEY}
+      public-key: ${JWT_PUBLIC_KEY}
+      access-expiration: ${JWT_ACCESS_EXPIRATION:15m}
+      refresh-expiration: ${JWT_REFRESH_EXPIRATION:7d}
+    cookie:
+      access-name: ${JWT_ACCESS_COOKIE_NAME:msid}
+      refresh-name: ${JWT_REFRESH_COOKIE_NAME:msid_r}
+      access-max-age: ${JWT_ACCESS_COOKIE_MAX_AGE:15m}
+      refresh-max-age: ${JWT_REFRESH_COOKIE_MAX_AGE:7d}
+      path: ${JWT_COOKIE_PATH:/}
+      domain: ${JWT_COOKIE_DOMAIN:}
+      http-only: ${JWT_COOKIE_HTTP_ONLY:true}
+      secure: ${JWT_COOKIE_SECURE:false}
+      same-site: ${JWT_COOKIE_SAME_SITE:Strict}
+
 management:
   endpoints:
     web:
