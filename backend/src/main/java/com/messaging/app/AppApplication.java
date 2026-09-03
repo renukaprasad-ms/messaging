@@ -2,8 +2,12 @@ package com.messaging.app;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.persistence.autoconfigure.EntityScan;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication(scanBasePackages = "com.messaging")
+@EntityScan(basePackages = "com.messaging")
+@EnableJpaRepositories(basePackages = "com.messaging")
 public class AppApplication {
 
 	public static void main(String[] args) {
