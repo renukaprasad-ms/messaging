@@ -1,5 +1,6 @@
 package com.messaging.role.service;
 
+import com.messaging.common.exception.NotFoundException;
 import com.messaging.role.entity.Role;
 import com.messaging.role.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,11 @@ public class RoleService {
     public Role createIfMissing(String name, String description) {
         return roleRepository.findByName(name)
                 .orElseGet(() -> create(name, description));
+    }
+
+    public Role getByName(String name) {
+        return roleRepository.findByName(name)
+                .orElseThrow(() -> new NotFoundException("Role not found"));
     }
 
     private Role create(String name, String description) {
