@@ -16,7 +16,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserResponse createUser(UserCreateRequest request) {
+    public User create(UserCreateRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             throw new ConflictException("User email already exists");
         }
@@ -30,7 +30,6 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setPhone(request.phone());
 
-        User savedUser = userRepository.save(user);
-        return new UserResponse(savedUser.getName(), savedUser.getEmail(), savedUser.getPhone());
+        return userRepository.save(user);
     }
 }

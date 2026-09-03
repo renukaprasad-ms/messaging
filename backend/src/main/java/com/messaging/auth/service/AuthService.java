@@ -51,10 +51,8 @@ public class AuthService {
                 new LoginResponse(
                         user.getName(),
                         user.getEmail(),
-                        user.getPhone()
-                ),
+                        user.getPhone()),
                 accessToken,
-                refreshToken
-        );
+                refreshToken);
     }
 }
