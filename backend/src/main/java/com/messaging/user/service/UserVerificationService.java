@@ -29,4 +29,24 @@ public class UserVerificationService {
         }
         otpService.sendOtp(user.getPhone(), NotificationChannel.SMS);
     }
+
+    public void verifyEmail(Long userId, String otp) {
+        User user = userService.getById(userId);
+        if (!otpService.verifyOtp(user.getEmail(), NotificationChannel.EMAIL, otp)) {
+            throw new BadRequestException("Invalid OTP");
+        }
+
+        user.setEmailVerified(true);
+        userService.save(user);
+    }
+
+    public void verifyPhone(Long userId, String otp) {
+        User user = userService.getById(userId);
+        if (!otpService.verifyOtp(user.getPhone(), NotificationChannel.SMS, otp)) {
+            throw new BadRequestException("Invalid OTP");
+        }
+
+        user.setPhoneVerified(true);
+        userService.save(user);
+    }
 }

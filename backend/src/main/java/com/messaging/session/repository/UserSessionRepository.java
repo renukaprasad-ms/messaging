@@ -10,4 +10,8 @@ import java.util.Optional;
 public interface UserSessionRepository extends JpaRepository<UserSession, Long> {
 
     Optional<UserSession> findByUserAndPlatform(User user, SessionPlatform platform);
+
+    Optional<UserSession> findByUserAndRefreshTokenAndActiveTrue(User user, String refreshToken);
+
+    Optional<UserSession> findByRefreshTokenAndActiveTrue(String refreshToken);
 }

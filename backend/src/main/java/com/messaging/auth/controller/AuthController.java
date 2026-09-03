@@ -4,6 +4,7 @@ import com.messaging.auth.dto.LoginRequest;
 import com.messaging.auth.dto.LoginResponse;
 import com.messaging.auth.dto.LoginResult;
 import com.messaging.auth.service.AuthService;
+import com.messaging.common.exception.UnauthorizedException;
 import com.messaging.common.response.ApiResponse;
 import com.messaging.security.web.CookieService;
 import com.messaging.session.service.SessionRequestMetadataResolver;
@@ -54,6 +55,32 @@ public class AuthController {
                 .status(HttpStatus.OK)
                 .headers(headers)
                 .body(ApiResponse.success(HttpStatus.OK.value(), loginResult.user(), "Login successful"));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<LoginResponse>> refresh(HttpServletRequest httpRequest) {
+        String refreshToken = cookieService.refreshToken(httpRequest)
+                .orElseThrow(() -> new UnauthorizedException("Refresh token is missing"));
+        LoginResult loginResult = authService.refresh(refreshToken, metadataResolver.resolve(httpRequest));
+        HttpHeaders headers = authCookies(loginResult);
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .headers(headers)
+                .body(ApiResponse.success(HttpStatus.OK.value(), loginResult.user(), "Token refreshed successfully"));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest httpRequest) {
+        cookieService.refreshToken(httpRequest).ifPresent(authService::logout);
+
+        HttpHeaders headers = new HttpHeaders();
+        cookieService.clearTokenCookies(headers);
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .headers(headers)
+                .body(ApiResponse.success(HttpStatus.OK.value(), "Logout successful"));
     }
 
     private HttpHeaders authCookies(LoginResult loginResult) {

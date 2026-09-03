@@ -41,6 +41,29 @@ public class AuthService {
         return createLoginResult(user, metadata);
     }
 
+    public LoginResult refresh(String refreshToken, SessionRequestMetadata metadata) {
+        if (!jwtService.isValidRefreshToken(refreshToken)) {
+            throw new UnauthorizedException("Invalid refresh token");
+        }
+
+        User user = userService.getById(Long.valueOf(jwtService.subject(refreshToken)));
+        String nextRefreshToken = jwtService.createRefreshToken(user.getId().toString());
+        userSessionService.rotateRefreshToken(user, refreshToken, nextRefreshToken, metadata);
+
+        String accessToken = jwtService.createAccessToken(user.getId().toString());
+        return new LoginResult(
+                new LoginResponse(
+                        user.getName(),
+                        user.getEmail(),
+                        user.getPhone()),
+                accessToken,
+                nextRefreshToken);
+    }
+
+    public void logout(String refreshToken) {
+        userSessionService.revokeRefreshToken(refreshToken);
+    }
+
     private LoginResult createLoginResult(User user, SessionRequestMetadata metadata) {
         String subject = user.getId().toString();
         String refreshToken = jwtService.createRefreshToken(subject);

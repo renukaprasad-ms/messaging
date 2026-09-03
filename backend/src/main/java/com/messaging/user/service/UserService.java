@@ -37,4 +37,8 @@ public class UserService {
         return userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("User not found"));
     }
+
+    public void save(User user) {
+        userRepository.save(user);
+    }
 }

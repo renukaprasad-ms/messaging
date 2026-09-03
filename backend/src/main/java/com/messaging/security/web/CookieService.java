@@ -1,11 +1,15 @@
 package com.messaging.security.web;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +44,22 @@ public class CookieService {
     public void clearTokenCookies(HttpHeaders headers) {
         headers.add(HttpHeaders.SET_COOKIE, clearAccessTokenCookie());
         headers.add(HttpHeaders.SET_COOKIE, clearRefreshTokenCookie());
+    }
+
+    public Optional<String> refreshToken(HttpServletRequest request) {
+        return cookieValue(request, properties.getRefreshName());
+    }
+
+    private Optional<String> cookieValue(HttpServletRequest request, String name) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return Optional.empty();
+        }
+
+        return Arrays.stream(cookies)
+                .filter(cookie -> name.equals(cookie.getName()))
+                .map(Cookie::getValue)
+                .findFirst();
     }
 
     private String tokenCookie(String name, String value, Duration maxAge) {

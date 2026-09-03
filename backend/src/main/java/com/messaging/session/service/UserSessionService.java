@@ -1,5 +1,6 @@
 package com.messaging.session.service;
 
+import com.messaging.common.exception.UnauthorizedException;
 import com.messaging.security.jwt.JwtProperties;
 import com.messaging.session.dto.SessionRequestMetadata;
 import com.messaging.session.entity.UserSession;
@@ -37,6 +38,33 @@ public class UserSessionService {
         session.setExpiresAt(now.plus(jwtProperties.getRefreshExpiration()));
 
         return userSessionRepository.save(session);
+    }
+
+    public UserSession rotateRefreshToken(User user, String currentRefreshToken, String nextRefreshToken, SessionRequestMetadata metadata) {
+        Instant now = Instant.now();
+        UserSession session = userSessionRepository.findByUserAndRefreshTokenAndActiveTrue(user, hash(currentRefreshToken))
+                .filter(existingSession -> existingSession.getExpiresAt().isAfter(now))
+                .orElseThrow(() -> new UnauthorizedException("Invalid refresh token"));
+
+        session.setRefreshToken(hash(nextRefreshToken));
+        session.setPlatform(metadata.platform());
+        session.setDeviceId(metadata.deviceId());
+        session.setDeviceName(metadata.deviceName());
+        session.setIpAddress(metadata.ipAddress());
+        session.setUserAgent(metadata.userAgent());
+        session.setLastActiveAt(now);
+        session.setExpiresAt(now.plus(jwtProperties.getRefreshExpiration()));
+
+        return userSessionRepository.save(session);
+    }
+
+    public void revokeRefreshToken(String refreshToken) {
+        userSessionRepository.findByRefreshTokenAndActiveTrue(hash(refreshToken))
+                .ifPresent(session -> {
+                    session.setActive(false);
+                    session.setRefreshToken(hash(refreshToken));
+                    userSessionRepository.save(session);
+                });
     }
 
     private String hash(String token) {
