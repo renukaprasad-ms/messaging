@@ -2,6 +2,7 @@ package com.messaging.notification.service;
 
 import com.messaging.common.exception.BadRequestException;
 import com.messaging.common.exception.TooManyRequestsException;
+import com.messaging.common.util.HashUtils;
 import com.messaging.notification.model.NotificationChannel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -10,8 +11,6 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
-import java.time.Duration;
-import java.util.HexFormat;
 import java.util.UUID;
 
 @Service
@@ -35,7 +34,8 @@ public class OtpService {
         String otp = generateOtp();
         String salt = UUID.randomUUID().toString();
 
-        redisTemplate.opsForValue().set(otpKey(destination, channel), hash(otp, salt), properties.getTtl());
+        redisTemplate.opsForValue().set(otpKey(destination, channel), HashUtils.sha256Hex(salt + ":" + otp),
+                properties.getTtl());
         redisTemplate.opsForValue().set(saltKey(destination, channel), salt, properties.getTtl());
         redisTemplate.delete(attemptsKey(destination, channel));
         redisTemplate.opsForValue().set(cooldownKey, "1", properties.getResendCooldown());
@@ -64,8 +64,7 @@ public class OtpService {
 
         boolean valid = MessageDigest.isEqual(
                 expectedHash.getBytes(StandardCharsets.UTF_8),
-                hash(otp, salt).getBytes(StandardCharsets.UTF_8)
-        );
+                HashUtils.sha256Hex(salt + ":" + otp).getBytes(StandardCharsets.UTF_8));
 
         if (valid) {
             clearOtp(destination, channel);
@@ -102,16 +101,6 @@ public class OtpService {
         redisTemplate.delete(saltKey(destination, channel));
         redisTemplate.delete(attemptsKey(destination, channel));
         redisTemplate.delete(cooldownKey(destination, channel));
-    }
-
-    private String hash(String otp, String salt) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest((salt + ":" + otp).getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hash);
-        } catch (Exception exception) {
-            throw new IllegalStateException("Unable to hash OTP", exception);
-        }
     }
 
     private String otpKey(String destination, NotificationChannel channel) {

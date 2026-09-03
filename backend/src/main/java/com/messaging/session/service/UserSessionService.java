@@ -1,6 +1,7 @@
 package com.messaging.session.service;
 
 import com.messaging.common.exception.UnauthorizedException;
+import com.messaging.common.util.HashUtils;
 import com.messaging.security.jwt.JwtProperties;
 import com.messaging.session.dto.SessionRequestMetadata;
 import com.messaging.session.entity.UserSession;
@@ -9,10 +10,7 @@ import com.messaging.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.Instant;
-import java.util.HexFormat;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +26,7 @@ public class UserSessionService {
 
         session.setUser(user);
         session.setPlatform(metadata.platform());
-        session.setRefreshToken(hash(refreshToken));
+        session.setRefreshToken(HashUtils.sha256Hex(refreshToken));
         session.setDeviceId(metadata.deviceId());
         session.setDeviceName(metadata.deviceName());
         session.setIpAddress(metadata.ipAddress());
@@ -42,11 +40,11 @@ public class UserSessionService {
 
     public UserSession rotateRefreshToken(User user, String currentRefreshToken, String nextRefreshToken, SessionRequestMetadata metadata) {
         Instant now = Instant.now();
-        UserSession session = userSessionRepository.findByUserAndRefreshTokenAndActiveTrue(user, hash(currentRefreshToken))
+        UserSession session = userSessionRepository.findByUserAndRefreshTokenAndActiveTrue(user, HashUtils.sha256Hex(currentRefreshToken))
                 .filter(existingSession -> existingSession.getExpiresAt().isAfter(now))
                 .orElseThrow(() -> new UnauthorizedException("Invalid refresh token"));
 
-        session.setRefreshToken(hash(nextRefreshToken));
+        session.setRefreshToken(HashUtils.sha256Hex(nextRefreshToken));
         session.setPlatform(metadata.platform());
         session.setDeviceId(metadata.deviceId());
         session.setDeviceName(metadata.deviceName());
@@ -59,21 +57,20 @@ public class UserSessionService {
     }
 
     public void revokeRefreshToken(String refreshToken) {
-        userSessionRepository.findByRefreshTokenAndActiveTrue(hash(refreshToken))
+        userSessionRepository.findByRefreshTokenAndActiveTrue(HashUtils.sha256Hex(refreshToken))
                 .ifPresent(session -> {
                     session.setActive(false);
-                    session.setRefreshToken(hash(refreshToken));
+                    session.setRefreshToken(HashUtils.sha256Hex(refreshToken));
                     userSessionRepository.save(session);
                 });
     }
 
-    private String hash(String token) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hash);
-        } catch (Exception exception) {
-            throw new IllegalStateException("Unable to hash refresh token", exception);
-        }
+    public void revokeAll(User user) {
+        userSessionRepository.findAllByUserAndActiveTrue(user)
+                .forEach(session -> {
+                    session.setActive(false);
+                    userSessionRepository.save(session);
+                });
     }
+
 }

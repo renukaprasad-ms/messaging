@@ -26,6 +26,9 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
 app:
+  auth:
+    password-reset:
+      token-ttl: ${PASSWORD_RESET_TOKEN_TTL:10m}
   notification:
     email:
       from: ${SMTP_FROM:no-reply@messaging.local}
