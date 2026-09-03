@@ -1,8 +1,8 @@
 package com.messaging.user.service;
 
 import com.messaging.common.exception.ConflictException;
+import com.messaging.common.exception.NotFoundException;
 import com.messaging.user.dto.UserCreateRequest;
-import com.messaging.user.dto.UserResponse;
 import com.messaging.user.entity.User;
 import com.messaging.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,5 +31,10 @@ public class UserService {
         user.setPhone(request.phone());
 
         return userRepository.save(user);
+    }
+
+    public User getById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 }

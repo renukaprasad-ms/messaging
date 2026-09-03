@@ -6,6 +6,8 @@ import com.messaging.auth.dto.LoginResult;
 import com.messaging.auth.service.AuthService;
 import com.messaging.common.response.ApiResponse;
 import com.messaging.security.web.CookieService;
+import com.messaging.session.service.SessionRequestMetadataResolver;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -24,10 +26,14 @@ public class AuthController {
 
     private final AuthService authService;
     private final CookieService cookieService;
+    private final SessionRequestMetadataResolver metadataResolver;
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<LoginResponse>> register(@RequestBody UserCreateRequest request) {
-        LoginResult loginResult = authService.register(request);
+    public ResponseEntity<ApiResponse<LoginResponse>> register(
+            @RequestBody UserCreateRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        LoginResult loginResult = authService.register(request, metadataResolver.resolve(httpRequest));
         HttpHeaders headers = authCookies(loginResult);
 
         return ResponseEntity
@@ -37,8 +43,11 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest request) {
-        LoginResult loginResult = authService.login(request);
+    public ResponseEntity<ApiResponse<LoginResponse>> login(
+            @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        LoginResult loginResult = authService.login(request, metadataResolver.resolve(httpRequest));
         HttpHeaders headers = authCookies(loginResult);
 
         return ResponseEntity

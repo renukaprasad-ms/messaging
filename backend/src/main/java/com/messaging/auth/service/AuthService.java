@@ -5,7 +5,7 @@ import com.messaging.auth.dto.LoginResponse;
 import com.messaging.auth.dto.LoginResult;
 import com.messaging.common.exception.UnauthorizedException;
 import com.messaging.security.jwt.JwtService;
-import com.messaging.session.entity.SessionPlatform;
+import com.messaging.session.dto.SessionRequestMetadata;
 import com.messaging.session.service.UserSessionService;
 import com.messaging.user.dto.UserCreateRequest;
 import com.messaging.user.entity.User;
@@ -25,12 +25,12 @@ public class AuthService {
     private final JwtService jwtService;
     private final UserSessionService userSessionService;
 
-    public LoginResult register(UserCreateRequest request) {
+    public LoginResult register(UserCreateRequest request, SessionRequestMetadata metadata) {
         User user = userService.create(request);
-        return createLoginResult(user);
+        return createLoginResult(user, metadata);
     }
 
-    public LoginResult login(LoginRequest request) {
+    public LoginResult login(LoginRequest request, SessionRequestMetadata metadata) {
         User user = userRepository.findByEmailOrPhone(request.identifier(), request.identifier())
                 .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
 
@@ -38,13 +38,13 @@ public class AuthService {
             throw new UnauthorizedException("Invalid credentials");
         }
 
-        return createLoginResult(user);
+        return createLoginResult(user, metadata);
     }
 
-    private LoginResult createLoginResult(User user) {
+    private LoginResult createLoginResult(User user, SessionRequestMetadata metadata) {
         String subject = user.getId().toString();
         String refreshToken = jwtService.createRefreshToken(subject);
-        userSessionService.createOrUpdateSession(user, SessionPlatform.WEB, refreshToken);
+        userSessionService.createOrUpdateSession(user, refreshToken, metadata);
 
         String accessToken = jwtService.createAccessToken(subject);
         return new LoginResult(
