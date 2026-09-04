@@ -43,6 +43,7 @@ public class CompanyService {
         return toResponse(membership);
     }
 
+    @Transactional(readOnly = true)
     public List<CompanyResponse> getCompaniesForUser(Long userId) {
         User user = userService.getById(userId);
         return companyMembershipService.getActiveMemberships(user)

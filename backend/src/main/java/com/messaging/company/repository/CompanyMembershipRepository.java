@@ -10,4 +10,6 @@ import java.util.List;
 public interface CompanyMembershipRepository extends JpaRepository<CompanyMembership, Long> {
 
     List<CompanyMembership> findAllByUserAndStatus(User user, MembershipStatus status);
+
+    boolean existsByUserAndStatus(User user, MembershipStatus status);
 }

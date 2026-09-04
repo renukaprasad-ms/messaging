@@ -3,6 +3,7 @@ package com.messaging.auth.service;
 import com.messaging.auth.dto.LoginRequest;
 import com.messaging.auth.dto.LoginResponse;
 import com.messaging.auth.dto.LoginResult;
+import com.messaging.company.service.CompanyMembershipService;
 import com.messaging.common.exception.UnauthorizedException;
 import com.messaging.security.jwt.JwtService;
 import com.messaging.session.dto.SessionRequestMetadata;
@@ -24,6 +25,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final UserSessionService userSessionService;
+    private final CompanyMembershipService companyMembershipService;
 
     public LoginResult register(UserCreateRequest request, SessionRequestMetadata metadata) {
         User user = userService.create(request);
@@ -52,10 +54,7 @@ public class AuthService {
 
         String accessToken = jwtService.createAccessToken(user.getId().toString());
         return new LoginResult(
-                new LoginResponse(
-                        user.getName(),
-                        user.getEmail(),
-                        user.getPhone()),
+                createLoginResponse(user),
                 accessToken,
                 nextRefreshToken);
     }
@@ -71,11 +70,18 @@ public class AuthService {
 
         String accessToken = jwtService.createAccessToken(subject);
         return new LoginResult(
-                new LoginResponse(
-                        user.getName(),
-                        user.getEmail(),
-                        user.getPhone()),
+                createLoginResponse(user),
                 accessToken,
                 refreshToken);
+    }
+
+    private LoginResponse createLoginResponse(User user) {
+        boolean hasCompany = companyMembershipService.hasActiveMembership(user);
+        return new LoginResponse(
+                user.getName(),
+                user.getEmail(),
+                user.getPhone(),
+                hasCompany,
+                user.getStatus());
     }
 }

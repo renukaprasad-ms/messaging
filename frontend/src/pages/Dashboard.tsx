@@ -1,8 +1,13 @@
 import { useSelector } from "react-redux";
+import { Navigate } from "react-router";
 import type { RootState } from "../store/store";
 
 const Dashboard = () => {
   const user = useSelector((state: RootState) => state.auth.user);
+
+  if (user && !user.hasCompany) {
+    return <Navigate to="/company/create" replace />;
+  }
 
   return (
     <section className="mx-auto max-w-6xl px-6 py-8">

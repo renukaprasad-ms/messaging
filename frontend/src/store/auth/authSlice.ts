@@ -1,9 +1,13 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 
+type UserStatus = 'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED'
+
 interface User {
   name: string
   email: string
   phone: string
+  hasCompany: boolean
+  status: UserStatus
 }
 
 interface AuthState {

@@ -8,6 +8,7 @@ import com.messaging.role.entity.Role;
 import com.messaging.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -26,7 +27,13 @@ public class CompanyMembershipService {
         return companyMembershipRepository.save(membership);
     }
 
+    @Transactional(readOnly = true)
     public List<CompanyMembership> getActiveMemberships(User user) {
         return companyMembershipRepository.findAllByUserAndStatus(user, MembershipStatus.ACTIVE);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasActiveMembership(User user) {
+        return companyMembershipRepository.existsByUserAndStatus(user, MembershipStatus.ACTIVE);
     }
 }

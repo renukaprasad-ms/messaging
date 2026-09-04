@@ -26,7 +26,7 @@ const Login = () => {
         dispatch(setUser(response.data));
       }
 
-      navigate("/", { replace: true });
+      navigate(response.data?.hasCompany ? "/" : "/company/create", { replace: true });
     } catch (err) {
       setError(getApiErrorMessage(err, "Unable to sign in. Please check your details."));
     } finally {

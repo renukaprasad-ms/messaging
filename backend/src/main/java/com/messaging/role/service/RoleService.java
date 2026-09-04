@@ -5,6 +5,7 @@ import com.messaging.role.entity.Role;
 import com.messaging.role.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +18,7 @@ public class RoleService {
                 .orElseGet(() -> create(name, description));
     }
 
+    @Transactional(readOnly = true)
     public Role getByName(String name) {
         return roleRepository.findByName(name)
                 .orElseThrow(() -> new NotFoundException("Role not found"));

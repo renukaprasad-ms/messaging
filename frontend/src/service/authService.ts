@@ -9,10 +9,14 @@ export interface ApiResponse<T = void> {
   error_message?: string
 }
 
+export type UserStatus = 'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED'
+
 export interface AuthUser {
   name: string
   email: string
   phone: string
+  hasCompany: boolean
+  status: UserStatus
 }
 
 export interface LoginRequest {

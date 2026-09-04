@@ -40,7 +40,7 @@ const Register = () => {
         dispatch(setUser(response.data));
       }
 
-      navigate("/", { replace: true });
+      navigate(response.data?.hasCompany ? "/" : "/company/create", { replace: true });
     } catch (err) {
       setError(getApiErrorMessage(err, "Unable to create account. Please try again."));
     } finally {
