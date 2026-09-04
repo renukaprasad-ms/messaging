@@ -11,7 +11,7 @@ const capabilities = [
 const AuthLayout = () => {
   return (
     <main className="h-dvh overflow-hidden bg-white lg:grid lg:grid-cols-[48%_52%]">
-      <section className="relative hidden h-dvh overflow-hidden border-r border-slate-100 bg-gradient-to-br from-indigo-50 via-white to-violet-50 px-10 py-8 lg:flex lg:flex-col xl:px-12">
+      <section className="relative hidden h-dvh overflow-hidden border-r border-slate-100 bg-[linear-gradient(105deg,#F0F1FF_0%,#FFFFFF_100%)] px-10 py-8 lg:flex lg:flex-col xl:px-12">
         <div className="absolute -left-24 top-52 h-72 w-72 rounded-full bg-indigo-200/20 blur-3xl" />
         <div className="absolute -right-24 bottom-20 h-80 w-80 rounded-full bg-violet-200/30 blur-3xl" />
 
@@ -20,8 +20,8 @@ const AuthLayout = () => {
           <span className="text-2xl font-bold tracking-tight text-slate-900">Messaging</span>
         </div>
 
-        <div className="relative z-10 flex min-h-0 flex-1 flex-col justify-center py-5">
-          <h1 className="text-3xl font-bold leading-tight tracking-tight text-slate-950 xl:text-4xl 2xl:text-5xl">
+        <div className="relative z-0 flex min-h-0 flex-1 flex-col justify-top py-8">
+          <h1 className="text-3xl font-bold leading-tight tracking-tight text-slate-950 xl:text-4xl 2xl:text-4xl">
             Connect every conversation.<br />Grow from one place.
           </h1>
           <p className="mt-3 max-w-lg text-sm leading-6 text-slate-500 xl:text-base">
@@ -49,7 +49,7 @@ const AuthLayout = () => {
             ))}
           </div>
 
-          <div className="ml-auto mt-5 hidden w-60 rounded-2xl border border-slate-100 bg-white p-4 shadow-xl shadow-slate-200/50 xl:block 2xl:mt-7">
+          <div className="relative z-10 ml-auto mt-5 w-60 rounded-2xl border border-slate-100 bg-white px-4 py-6 shadow-xl shadow-slate-200/50 xl:absolute xl:left-[45%] xl:top-[70%] xl:mt-0">
             <p className="text-xs font-semibold text-slate-900">Dashboard</p>
             <div className="mt-3 grid grid-cols-2 gap-4">
               <div><strong className="block text-lg text-slate-950">24.8K</strong><span className="text-[10px] text-slate-400">Conversations</span></div>
