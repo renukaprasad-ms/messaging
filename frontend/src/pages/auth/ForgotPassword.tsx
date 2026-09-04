@@ -26,12 +26,12 @@ const ForgotPassword = () => {
   return (
     <div>
       <h1 className="text-3xl font-bold tracking-tight text-slate-950">Forgot your password?</h1>
-      <p className="mt-2 text-sm leading-6 text-slate-500">Enter your email address and we&apos;ll send instructions to reset your password.</p>
+      <p className="mt-2 text-sm leading-6 text-slate-500">Enter your email address or phone number and we&apos;ll send instructions to reset your password.</p>
 
       <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-800">Email address</span>
-          <input type="email" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="you@example.com" autoComplete="email" required className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50" />
+          <span className="mb-2 block text-sm font-medium text-slate-800">Email address or phone number</span>
+          <input type="text" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="you@example.com or 7022129610" autoComplete="username" required className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50" />
         </label>
 
         {error ? <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p> : null}

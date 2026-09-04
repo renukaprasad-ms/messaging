@@ -11,6 +11,12 @@ spring:
       port: ${SPRING_DATA_REDIS_PORT:6379}
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      auto-offset-reset: earliest
+      group-id: ${SPRING_KAFKA_CONSUMER_GROUP_ID:messaging-notification-workers}
   mail:
     host: ${SMTP_HOST:localhost}
     port: ${SMTP_PORT:1025}
@@ -47,18 +53,22 @@ app:
         topic: ${APP_KAFKA_QUEUE_CRITICAL_TOPIC:messaging.critical}
         partitions: ${APP_KAFKA_QUEUE_CRITICAL_PARTITIONS:6}
         replicas: ${APP_KAFKA_QUEUE_CRITICAL_REPLICAS:1}
+        concurrency: ${APP_KAFKA_QUEUE_CRITICAL_CONCURRENCY:6}
       high:
         topic: ${APP_KAFKA_QUEUE_HIGH_TOPIC:messaging.high}
         partitions: ${APP_KAFKA_QUEUE_HIGH_PARTITIONS:6}
         replicas: ${APP_KAFKA_QUEUE_HIGH_REPLICAS:1}
+        concurrency: ${APP_KAFKA_QUEUE_HIGH_CONCURRENCY:4}
       medium:
         topic: ${APP_KAFKA_QUEUE_MEDIUM_TOPIC:messaging.medium}
         partitions: ${APP_KAFKA_QUEUE_MEDIUM_PARTITIONS:3}
         replicas: ${APP_KAFKA_QUEUE_MEDIUM_REPLICAS:1}
+        concurrency: ${APP_KAFKA_QUEUE_MEDIUM_CONCURRENCY:2}
       low:
         topic: ${APP_KAFKA_QUEUE_LOW_TOPIC:messaging.low}
         partitions: ${APP_KAFKA_QUEUE_LOW_PARTITIONS:3}
         replicas: ${APP_KAFKA_QUEUE_LOW_REPLICAS:1}
+        concurrency: ${APP_KAFKA_QUEUE_LOW_CONCURRENCY:1}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5100}
   auth:
@@ -99,3 +109,8 @@ management:
   endpoint:
     health:
       show-details: always
+
+logging:
+  level:
+    org.apache.kafka: warn
+    org.springframework.kafka: warn

@@ -21,6 +21,9 @@ import java.util.List;
 public class CompanyService {
 
     private final CompanyRepository companyRepository;
+    private final CompanyProfileService companyProfileService;
+    private final CompanyAddressService companyAddressService;
+    private final CompanyVerificationService companyVerificationService;
     private final CompanyMembershipService companyMembershipService;
     private final RoleService roleService;
     private final UserService userService;
@@ -30,6 +33,18 @@ public class CompanyService {
         if (request.name() == null || request.name().isBlank()) {
             throw new BadRequestException("Company name is required");
         }
+        if (request.legalName() == null || request.legalName().isBlank()) {
+            throw new BadRequestException("Company legal name is required");
+        }
+        if (request.addressLine1() == null || request.addressLine1().isBlank()) {
+            throw new BadRequestException("Company address line 1 is required");
+        }
+        if (request.city() == null || request.city().isBlank()) {
+            throw new BadRequestException("Company city is required");
+        }
+        if (request.country() == null || request.country().isBlank()) {
+            throw new BadRequestException("Company country is required");
+        }
 
         User user = userService.getById(userId);
         Role ownerRole = roleService.getByName("OWNER");
@@ -38,6 +53,10 @@ public class CompanyService {
         company.setName(request.name());
         company.setDisplayName(request.displayName());
         Company savedCompany = companyRepository.save(company);
+
+        companyProfileService.createProfile(savedCompany, request);
+        companyAddressService.createAddress(savedCompany, request);
+        companyVerificationService.createPendingVerification(savedCompany);
 
         CompanyMembership membership = companyMembershipService.createOwnerMembership(savedCompany, user, ownerRole);
         return toResponse(membership);

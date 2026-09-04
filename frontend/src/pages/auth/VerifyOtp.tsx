@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent, type ClipboardEvent, type FormEvent, type KeyboardEvent } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { authService, getApiErrorMessage } from "../../service/authService";
 
@@ -13,12 +13,55 @@ const VerifyOtp = () => {
   const [digits, setDigits] = useState(Array<string>(6).fill(""));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(identifier ? "" : "Please request a password reset code first.");
+  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   const otp = digits.join("");
 
   const updateDigit = (index: number, event: ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value.replace(/\D/g, "").slice(-1);
-    setDigits((current) => current.map((digit, digitIndex) => digitIndex === index ? value : digit));
+    const value = event.target.value.replace(/\D/g, "");
+    if (!value) {
+      setDigits((current) => current.map((digit, digitIndex) => digitIndex === index ? "" : digit));
+      return;
+    }
+
+    const nextDigits = value.slice(0, 6 - index).split("");
+    setDigits((current) => current.map((digit, digitIndex) => {
+      if (digitIndex < index || digitIndex >= index + nextDigits.length) {
+        return digit;
+      }
+
+      return nextDigits[digitIndex - index];
+    }));
+
+    const nextIndex = Math.min(index + nextDigits.length, digits.length - 1);
+    inputRefs.current[nextIndex]?.focus();
+  };
+
+  const handleKeyDown = (index: number, event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Backspace" || digits[index]) {
+      return;
+    }
+
+    inputRefs.current[index - 1]?.focus();
+  };
+
+  const handlePaste = (index: number, event: ClipboardEvent<HTMLInputElement>) => {
+    event.preventDefault();
+    const pastedDigits = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6 - index);
+    if (!pastedDigits) {
+      return;
+    }
+
+    setDigits((current) => current.map((digit, digitIndex) => {
+      if (digitIndex < index || digitIndex >= index + pastedDigits.length) {
+        return digit;
+      }
+
+      return pastedDigits[digitIndex - index];
+    }));
+
+    const nextIndex = Math.min(index + pastedDigits.length, digits.length - 1);
+    inputRefs.current[nextIndex]?.focus();
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -55,7 +98,21 @@ const VerifyOtp = () => {
       <form onSubmit={handleSubmit}>
         <div className="mt-8 flex gap-2">
           {digits.map((digit, index) => (
-            <input key={index} type="text" inputMode="numeric" value={digit} onChange={(event) => updateDigit(index, event)} maxLength={1} required className="h-14 min-w-0 flex-1 rounded-xl border border-slate-200 text-center text-lg font-semibold outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50" />
+            <input
+              key={index}
+              ref={(element) => {
+                inputRefs.current[index] = element;
+              }}
+              type="text"
+              inputMode="numeric"
+              value={digit}
+              onChange={(event) => updateDigit(index, event)}
+              onKeyDown={(event) => handleKeyDown(index, event)}
+              onPaste={(event) => handlePaste(index, event)}
+              maxLength={6}
+              required
+              className="h-14 min-w-0 flex-1 rounded-xl border border-slate-200 text-center text-lg font-semibold outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
+            />
           ))}
         </div>
 

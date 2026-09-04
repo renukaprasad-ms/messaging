@@ -36,11 +36,12 @@ public class PasswordResetService {
     private final PasswordResetProperties properties;
 
     public void forgotPassword(ForgotPasswordRequest request) {
-        user(request.identifier()).ifPresent(user -> {
-            String destination = destination(user, request.identifier());
-            NotificationChannel channel = channel(user, request.identifier());
-            otpService.sendOtp(destination, channel);
-        });
+        User user = user(request.identifier())
+                .orElseThrow(() -> new BadRequestException("User not found"));
+
+        String destination = destination(user, request.identifier());
+        NotificationChannel channel = channel(user, request.identifier());
+        otpService.sendOtp(destination, channel);
     }
 
     public VerifyPasswordResetOtpResponse verifyOtp(VerifyPasswordResetOtpRequest request) {

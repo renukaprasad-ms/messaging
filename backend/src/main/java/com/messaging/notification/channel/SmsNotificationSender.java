@@ -8,6 +8,6 @@ import org.springframework.stereotype.Component;
 public class SmsNotificationSender {
 
     public void sendOtp(String destination, String otp) {
-        log.info("Sending SMS OTP to {}", destination);
+        log.info("Sending SMS OTP to {}: {}", destination, otp);
     }
 }
