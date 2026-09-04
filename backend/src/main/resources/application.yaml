@@ -24,8 +24,12 @@ spring:
             enable: ${SMTP_STARTTLS_ENABLE:false}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
 
 app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5100}
   auth:
     password-reset:
       token-ttl: ${PASSWORD_RESET_TOKEN_TTL:10m}

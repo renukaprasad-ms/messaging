@@ -18,12 +18,35 @@ const refreshClient = axios.create({
 
 let refreshRequest: Promise<unknown> | null = null
 
+const authEndpoints = [
+  '/api/auth/register',
+  '/api/auth/login',
+  '/api/auth/refresh',
+  '/api/auth/logout',
+  '/api/auth/forgot-password',
+  '/api/auth/verify-reset-otp',
+  '/api/auth/reset-password',
+]
+
+const isAuthEndpoint = (url?: string) => {
+  if (!url) {
+    return false
+  }
+
+  return authEndpoints.some((endpoint) => url === endpoint || url.endsWith(endpoint))
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableRequestConfig | undefined
 
-    if (!originalRequest || error.response?.status !== 401 || originalRequest._retry) {
+    if (
+      !originalRequest ||
+      error.response?.status !== 401 ||
+      originalRequest._retry ||
+      isAuthEndpoint(originalRequest.url)
+    ) {
       return Promise.reject(error)
     }
 
