@@ -11,6 +11,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -65,6 +66,12 @@ public class GlobalExceptionHandler {
                 return ResponseEntity
                                 .status(HttpStatus.FORBIDDEN)
                                 .body(ApiResponse.error(HttpStatus.FORBIDDEN.value(), "Access denied"));
+        }
+
+        @ExceptionHandler(NoResourceFoundException.class)
+        public ResponseEntity<ApiResponse<Void>> handleNoResourceFound(NoResourceFoundException exception) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                .body(ApiResponse.error(HttpStatus.NOT_FOUND.value(), "Resource not found"));
         }
 
         @ExceptionHandler(Exception.class)
