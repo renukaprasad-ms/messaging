@@ -77,7 +77,7 @@ public class SecurityConfig {
                         "/api/auth/reset-password")
                     .permitAll()
                     .requestMatchers(
-                        "/api/auth/me", "/api/auth/change-password", "/api/users/verification/**")
+                        "/api/auth/change-password", "/api/users/me", "/api/users/verification/**")
                     .authenticated()
                     .requestMatchers("/api/admin/**")
                     .hasAnyAuthority("PLATFORM_ADMIN", "PLATFORM_SUPERADMIN")

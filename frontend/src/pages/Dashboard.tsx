@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { companyService, type CompanyResponse } from '../service/companyService'
+import { companyService, type CompanySummary } from '../service/companyService'
 import { getApiErrorMessage } from '../service/authService'
 
 export default function Dashboard() {
-  const [companies, setCompanies] = useState<CompanyResponse[]>([])
+  const [companies, setCompanies] = useState<CompanySummary[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(0)

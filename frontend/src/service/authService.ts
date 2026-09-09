@@ -62,11 +62,6 @@ export const authService = {
   }) {
     await apiClient.post('/api/auth/change-password', payload)
   },
-  async me() {
-    const response = await apiClient.get<ApiResponse<AuthUser>>('/api/auth/me')
-    return response.data
-  },
-
   async sendVerificationEmail() {
     await apiClient.post('/api/users/verification/email')
   },

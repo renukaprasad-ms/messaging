@@ -101,12 +101,6 @@ public class AuthService {
         user.isPasswordChangeRequired());
   }
 
-  public LoginResponse currentUser(Long userId) {
-    User user = userService.getById(userId);
-    requireEnabled(user);
-    return createLoginResponse(user);
-  }
-
   private void requireEnabled(User user) {
     if (!AccessPolicy.canSignIn(user)) {
       throw new UnauthorizedException("Account is unavailable");

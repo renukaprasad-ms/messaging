@@ -19,7 +19,7 @@ export interface CompanyCreateRequest {
   country: string
 }
 
-export interface CompanyResponse {
+export interface CompanySummary {
   id: number
   name: string
   displayName?: string
@@ -27,10 +27,30 @@ export interface CompanyResponse {
   role: string
 }
 
+export interface CompanyResponse extends CompanySummary {
+  profile?: {
+    legalName: string
+    website?: string
+    businessEmail?: string
+    businessPhone?: string
+    industry?: string
+    registrationNumber?: string
+    taxId?: string
+  }
+  address?: {
+    addressLine1: string
+    addressLine2?: string
+    city: string
+    state?: string
+    postalCode?: string
+    country: string
+  }
+}
+
 export const companyService = {
   async list(page = 0) {
     const response = await apiClient.get<
-      ApiResponse<{ companies: CompanyResponse[]; hasNext: boolean }>
+      ApiResponse<{ companies: CompanySummary[]; hasNext: boolean }>
     >('/api/companies', { params: { page } })
     return response.data.data ?? { companies: [], hasNext: false }
   },

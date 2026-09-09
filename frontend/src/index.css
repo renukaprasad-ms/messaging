@@ -127,6 +127,97 @@
     color: #6366f1;
     background: #f0f1ff;
   }
+  .workspace-switcher {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: min(260px, 42vw);
+    min-height: 38px;
+    border: 1px solid #e0e5f0;
+    border-radius: 9px;
+    padding: 8px 11px;
+    background: #ffffff;
+    color: #0e172b;
+    font-size: 13px;
+    font-weight: 650;
+  }
+  .workspace-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    z-index: 30;
+    width: min(300px, 82vw);
+    overflow: hidden;
+    border: 1px solid #e0e5f0;
+    border-radius: 9px;
+    background: #ffffff;
+    box-shadow: 0 18px 45px rgb(15 23 42 / 12%);
+  }
+  .workspace-menu-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 12px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+  }
+  .workspace-menu-item:hover {
+    background: #f8fafd;
+  }
+  .settings-tab {
+    min-height: 44px;
+    padding: 0 18px;
+    border-bottom: 2px solid transparent;
+    font-size: 13px;
+    font-weight: 650;
+    color: #63738c;
+  }
+  .settings-tab.is-active {
+    border-color: #6366f1;
+    color: #6366f1;
+  }
+  .security-icon {
+    display: inline-flex;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    background: #f0f1ff;
+    color: #6366f1;
+  }
+  .switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    background: #cbd5e1;
+    transition: background 0.16s;
+  }
+  .switch span {
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 20%);
+    transition: transform 0.16s;
+  }
+  .switch.is-on {
+    background: #6366f1;
+  }
+  .switch.is-on span {
+    transform: translateX(20px);
+  }
   @media (min-width: 1024px) {
     .app-sidebar {
       transform: translateX(0);

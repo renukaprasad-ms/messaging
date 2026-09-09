@@ -56,11 +56,6 @@ public class AuthController {
     return Map.of("token", token.getToken(), "headerName", token.getHeaderName());
   }
 
-  @GetMapping("/me")
-  public ApiResponse<LoginResponse> me(@AuthenticationPrincipal String userId) {
-    return ApiResponse.success(200, authService.currentUser(Long.valueOf(userId)), "Current user");
-  }
-
   @PostMapping("/register")
   public ResponseEntity<ApiResponse<LoginResponse>> register(
       @Valid @RequestBody UserCreateRequest request, HttpServletRequest httpRequest) {

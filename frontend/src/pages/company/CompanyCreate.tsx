@@ -1,8 +1,9 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
-import { authService, getApiErrorMessage } from '../../service/authService'
+import { getApiErrorMessage } from '../../service/authService'
 import { companyService, type CompanyCreateRequest } from '../../service/companyService'
+import { userService } from '../../service/userService'
 import { setUser } from '../../store/auth/authSlice'
 import type { RootState } from '../../store/store'
 
@@ -45,7 +46,7 @@ const CompanyCreate = () => {
     try {
       await companyService.createCompany(form)
       if (user) {
-        const response = await authService.me()
+        const response = await userService.me()
         if (response.data) dispatch(setUser(response.data))
       }
       navigate('/', { replace: true })
@@ -58,9 +59,15 @@ const CompanyCreate = () => {
 
   return (
     <section className="mx-auto max-w-5xl px-6 py-8">
-      <div className="mb-8">
+      <div className="mb-8 max-w-2xl">
         <p className="text-sm font-medium text-indigo-500">Company</p>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">Create company</h1>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+          Create your first company
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-slate-500">
+          A company gives your account a workspace for inboxes, broadcasts, contacts and marketing
+          tools. You can create or join more companies later.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">

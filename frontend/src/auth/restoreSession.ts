@@ -1,12 +1,12 @@
 import { AxiosError } from 'axios'
-import { authService } from '../service/authService'
+import { userService } from '../service/userService'
 import { store } from '../store/store'
 import { logout, sessionReady, setUser } from '../store/auth/authSlice'
 
 let restoration: Promise<void> | null = null
 
 export function restoreSession(): Promise<void> {
-  restoration ??= authService
+  restoration ??= userService
     .me()
     .then((response) => {
       if (response.data) store.dispatch(setUser(response.data))

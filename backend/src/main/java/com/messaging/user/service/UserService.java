@@ -5,6 +5,7 @@ import com.messaging.common.exception.ConflictException;
 import com.messaging.common.exception.NotFoundException;
 import com.messaging.user.dto.UserCreateRequest;
 import com.messaging.user.dto.UserPage;
+import com.messaging.user.dto.UserUpdateRequest;
 import com.messaging.user.entity.User;
 import com.messaging.user.repository.UserRepository;
 import jakarta.persistence.EntityManager;
@@ -69,6 +70,14 @@ public class UserService {
   @Transactional(readOnly = true)
   public User getById(Long id) {
     return userRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
+  }
+
+  @Transactional
+  public User updateProfile(Long id, UserUpdateRequest request) {
+    User user = getForUpdate(id);
+    user.setName(request.name().trim());
+    user.setPhone(request.phone());
+    return userRepository.save(user);
   }
 
   public void save(User user) {

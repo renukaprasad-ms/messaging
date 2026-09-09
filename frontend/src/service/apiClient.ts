@@ -51,7 +51,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const request = error.config as RetryableRequest | undefined
-    const isPublicAuth = request?.url?.startsWith('/api/auth/') && request.url !== '/api/auth/me'
+    const isPublicAuth = request?.url?.startsWith('/api/auth/')
     if (!request || error.response?.status !== 401 || request._retry || isPublicAuth) {
       if (request?._retry && error.response?.status === 401) store.dispatch(logout())
       return Promise.reject(error)

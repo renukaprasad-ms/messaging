@@ -35,4 +35,19 @@ public final class AccessPolicy {
         && ("OWNER".equals(membership.getRole().getName())
             || "ADMIN".equals(membership.getRole().getName()));
   }
+
+  public static boolean isPlatformAdmin(User user) {
+    return user.getPlatformRoles().stream()
+        .anyMatch(
+            role ->
+                role.isActive()
+                    && ("ADMIN".equals(role.getName()) || "SUPERADMIN".equals(role.getName())));
+  }
+
+  public static String platformCompanyRole(User user) {
+    boolean superadmin =
+        user.getPlatformRoles().stream()
+            .anyMatch(role -> role.isActive() && "SUPERADMIN".equals(role.getName()));
+    return superadmin ? "PLATFORM_SUPERADMIN" : "PLATFORM_ADMIN";
+  }
 }

@@ -2,4 +2,4 @@ package com.messaging.company.dto;
 
 import java.util.List;
 
-public record CompanyPage(List<CompanyResponse> companies, boolean hasNext) {}
+public record CompanyPage(List<CompanySummaryResponse> companies, boolean hasNext) {}

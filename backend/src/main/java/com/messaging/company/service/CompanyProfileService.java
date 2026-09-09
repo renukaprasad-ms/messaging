@@ -25,4 +25,8 @@ public class CompanyProfileService {
     profile.setTaxId(request.taxId());
     return companyProfileRepository.save(profile);
   }
+
+  public CompanyProfile getByCompanyId(Long companyId) {
+    return companyProfileRepository.findByCompanyId(companyId).orElse(null);
+  }
 }

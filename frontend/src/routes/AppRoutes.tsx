@@ -13,6 +13,8 @@ import VerifyEmail from '../pages/auth/VerifyEmail'
 import PlatformAdmin from '../pages/PlatformAdmin'
 import CompanyDetails from '../pages/company/CompanyDetails'
 import ChangePassword from '../pages/auth/ChangePassword'
+import Profile from '../pages/account/Profile'
+import Security from '../pages/account/Security'
 
 const AppRoutes = () => {
   return (
@@ -23,16 +25,21 @@ const AppRoutes = () => {
         <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route element={<RequireAuth verified={false} />}>
+          <Route path="/verify-email" element={<VerifyEmail />} />
+        </Route>
       </Route>
       <Route element={<RequireAuth verified={false} />}>
         <Route element={<MainLayout />}>
-          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/change-password" element={<ChangePassword />} />
         </Route>
       </Route>
       <Route element={<RequireAuth />}>
         <Route element={<MainLayout />}>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/account/profile" element={<Profile />} />
+          <Route path="/account/security" element={<Security />} />
+          <Route path="/account/settings" element={<Navigate to="/account/profile" replace />} />
           <Route path="/company/create" element={<CompanyCreate />} />
           <Route path="/companies/:companyId" element={<CompanyDetails />} />
           <Route

@@ -24,4 +24,8 @@ public class CompanyAddressService {
     address.setCountry(request.country());
     return companyAddressRepository.save(address);
   }
+
+  public CompanyAddress getPrimaryAddress(Long companyId) {
+    return companyAddressRepository.findFirstByCompanyIdOrderById(companyId).orElse(null);
+  }
 }

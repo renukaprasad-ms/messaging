@@ -1,46 +1,48 @@
-import { useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { useLocation, useNavigate } from 'react-router'
-import { authService, getApiErrorMessage } from '../service/authService'
-import { logout } from '../store/auth/authSlice'
-import type { RootState } from '../store/store'
+import { useMemo, useState } from 'react'
+import { FiChevronDown, FiMenu, FiPlus } from 'react-icons/fi'
+import { Link, useLocation, useNavigate } from 'react-router'
+import type { CompanySummary } from '../service/companyService'
 
 export default function Header({
   menuOpen,
   onToggleMenu,
+  companies,
+  hasMoreCompanies,
+  onLoadMoreCompanies,
 }: {
   menuOpen: boolean
   onToggleMenu: () => void
+  companies: CompanySummary[]
+  hasMoreCompanies: boolean
+  onLoadMoreCompanies: () => Promise<void>
 }) {
-  const dispatch = useDispatch()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const user = useSelector((state: RootState) => state.auth.user)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
+  const [open, setOpen] = useState(false)
   const title =
     pathname === '/admin'
       ? 'Platform administration'
-      : pathname === '/change-password'
-        ? 'Account security'
-        : pathname === '/verify-email'
-          ? 'Email verification'
-          : pathname.includes('compan')
-            ? 'Company workspace'
-            : 'Dashboard'
+      : pathname === '/account/profile'
+        ? 'Profile'
+        : pathname === '/account/security'
+          ? 'Security'
+          : pathname === '/change-password'
+            ? 'Security'
+            : pathname === '/verify-email'
+              ? 'Email verification'
+              : pathname.includes('compan')
+                ? 'Company workspace'
+                : 'Dashboard'
 
-  async function signOut() {
-    setBusy(true)
-    try {
-      await authService.logout()
-      dispatch(logout())
-      navigate('/login', { replace: true })
-    } catch (error) {
-      setError(getApiErrorMessage(error, 'Unable to sign out. Please try again.'))
-    } finally {
-      setBusy(false)
-    }
-  }
+  const activeCompany = useMemo(() => {
+    const match = pathname.match(/^\/companies\/(\d+)/)
+    if (!match) return companies[0]
+    return companies.find((company) => company.id === Number(match[1]))
+  }, [companies, pathname])
+
+  const companyIdFromPath = pathname.match(/^\/companies\/(\d+)/)?.[1]
+  const workspaceName =
+    activeCompany?.displayName || activeCompany?.name || (companyIdFromPath ? 'Company' : 'No company')
 
   return (
     <header className="app-header">
@@ -52,7 +54,7 @@ export default function Header({
           aria-label="Toggle navigation"
           className="secondary-button lg:hidden"
         >
-          ☰
+          <FiMenu aria-hidden="true" />
         </button>
         <div>
           <p className="text-lg font-semibold tracking-tight">{title}</p>
@@ -61,26 +63,59 @@ export default function Header({
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-3">
-        <span className="hidden size-9 items-center justify-center rounded-lg bg-indigo-50 text-xs font-semibold text-indigo-600 sm:flex">
-          {user?.name
-            .split(' ')
-            .map((part) => part[0])
-            .slice(0, 2)
-            .join('')}
-        </span>
-        <button onClick={signOut} disabled={busy} className="secondary-button">
-          {busy ? 'Signing out…' : 'Logout'}
-        </button>
-      </div>
-      {error && (
-        <p
-          role="alert"
-          className="absolute right-4 top-full z-20 rounded border border-red-100 bg-white p-3 text-sm text-red-600"
+      <div className="relative">
+        <button
+          type="button"
+          className="workspace-switcher"
+          aria-expanded={open}
+          aria-haspopup="menu"
+          onClick={() => setOpen((current) => !current)}
         >
-          {error}
-        </p>
-      )}
+          <span className="min-w-0 truncate">{workspaceName}</span>
+          <FiChevronDown aria-hidden="true" />
+        </button>
+        {open && (
+          <div className="workspace-menu" role="menu">
+            {companies.length ? (
+              companies.map((company) => (
+                <button
+                  key={company.id}
+                  type="button"
+                  role="menuitem"
+                  className="workspace-menu-item"
+                  onClick={() => {
+                    setOpen(false)
+                    navigate(`/companies/${company.id}`)
+                  }}
+                >
+                  <span className="truncate">{company.displayName || company.name}</span>
+                  <span className="text-[10px] font-semibold text-slate-400">{company.role}</span>
+                </button>
+              ))
+            ) : (
+              <p className="px-3 py-2 text-xs text-slate-500">Create a company to start.</p>
+            )}
+            {hasMoreCompanies && (
+              <button
+                type="button"
+                className="workspace-menu-item text-indigo-600"
+                onClick={() => onLoadMoreCompanies()}
+              >
+                Load more
+              </button>
+            )}
+            <Link
+              role="menuitem"
+              className="workspace-menu-item border-t border-slate-100 text-indigo-600"
+              to="/company/create"
+              onClick={() => setOpen(false)}
+            >
+              <FiPlus aria-hidden="true" />
+              Create company
+            </Link>
+          </div>
+        )}
+      </div>
     </header>
   )
 }

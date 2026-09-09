@@ -92,7 +92,7 @@ class AuthorizationIntegrationTests extends IntegrationTestSupport {
     mvc.perform(get("/api/admin/users").cookie(regularCookie)).andExpect(status().isForbidden());
     regular.setStatus(UserStatus.DISABLED);
     users.save(regular);
-    mvc.perform(get("/api/auth/me").cookie(regularCookie)).andExpect(status().isUnauthorized());
+    mvc.perform(get("/api/users/me").cookie(regularCookie)).andExpect(status().isUnauthorized());
   }
 
   @Test
