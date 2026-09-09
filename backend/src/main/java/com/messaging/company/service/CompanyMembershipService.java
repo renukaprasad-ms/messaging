@@ -7,33 +7,33 @@ import com.messaging.company.repository.CompanyMembershipRepository;
 import com.messaging.role.entity.Role;
 import com.messaging.user.entity.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class CompanyMembershipService {
 
-    private final CompanyMembershipRepository companyMembershipRepository;
+  private final CompanyMembershipRepository companyMembershipRepository;
 
-    public CompanyMembership createOwnerMembership(Company company, User user, Role ownerRole) {
-        CompanyMembership membership = new CompanyMembership();
-        membership.setCompany(company);
-        membership.setUser(user);
-        membership.setRole(ownerRole);
-        membership.setStatus(MembershipStatus.ACTIVE);
-        return companyMembershipRepository.save(membership);
-    }
+  public CompanyMembership createOwnerMembership(Company company, User user, Role ownerRole) {
+    CompanyMembership membership = new CompanyMembership();
+    membership.setCompany(company);
+    membership.setUser(user);
+    membership.setRole(ownerRole);
+    membership.setStatus(MembershipStatus.ACTIVE);
+    return companyMembershipRepository.save(membership);
+  }
 
-    @Transactional(readOnly = true)
-    public List<CompanyMembership> getActiveMemberships(User user) {
-        return companyMembershipRepository.findAllByUserAndStatus(user, MembershipStatus.ACTIVE);
-    }
+  @Transactional(readOnly = true)
+  public Slice<CompanyMembership> getActiveMemberships(Long userId, int page) {
+    return companyMembershipRepository.findActiveMemberships(userId, PageRequest.of(page, 25));
+  }
 
-    @Transactional(readOnly = true)
-    public boolean hasActiveMembership(User user) {
-        return companyMembershipRepository.existsByUserAndStatus(user, MembershipStatus.ACTIVE);
-    }
+  @Transactional(readOnly = true)
+  public boolean hasActiveMembership(User user) {
+    return companyMembershipRepository.hasWorkspace(user.getId());
+  }
 }

@@ -11,18 +11,18 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class CompanyProfileService {
 
-    private final CompanyProfileRepository companyProfileRepository;
+  private final CompanyProfileRepository companyProfileRepository;
 
-    public CompanyProfile createProfile(Company company, CompanyCreateRequest request) {
-        CompanyProfile profile = new CompanyProfile();
-        profile.setCompany(company);
-        profile.setLegalName(request.legalName());
-        profile.setWebsite(request.website());
-        profile.setBusinessEmail(request.businessEmail());
-        profile.setBusinessPhone(request.businessPhone());
-        profile.setIndustry(request.industry());
-        profile.setRegistrationNumber(request.registrationNumber());
-        profile.setTaxId(request.taxId());
-        return companyProfileRepository.save(profile);
-    }
+  public CompanyProfile createProfile(Company company, CompanyCreateRequest request) {
+    CompanyProfile profile = new CompanyProfile();
+    profile.setCompany(company);
+    profile.setLegalName(request.legalName());
+    profile.setWebsite(request.website());
+    profile.setBusinessEmail(request.businessEmail());
+    profile.setBusinessPhone(request.businessPhone());
+    profile.setIndustry(request.industry());
+    profile.setRegistrationNumber(request.registrationNumber());
+    profile.setTaxId(request.taxId());
+    return companyProfileRepository.save(profile);
+  }
 }

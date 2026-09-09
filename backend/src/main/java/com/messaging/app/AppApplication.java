@@ -13,13 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class AppApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(AppApplication.class, args);
-	}
+  public static void main(String[] args) {
+    SpringApplication.run(AppApplication.class, args);
+  }
 
-	@GetMapping("/health")
-	public String health() {
-		return "OK";
-	}
-
+  @GetMapping("/health")
+  public String health() {
+    return "OK";
+  }
 }

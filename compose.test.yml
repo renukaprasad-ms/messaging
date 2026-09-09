@@ -1,0 +1,24 @@
+name: messaging-tests
+services:
+  postgres:
+    image: postgres:18.6-alpine
+    ports: ["127.0.0.1:55432:5432"]
+    environment:
+      POSTGRES_DB: messaging_test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+    tmpfs: [/var/lib/postgresql]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d messaging_test"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+  redis:
+    image: redis:8.10.1-alpine
+    ports: ["127.0.0.1:56379:6379"]
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 20

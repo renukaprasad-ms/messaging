@@ -9,18 +9,17 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class PlatformRoleService {
 
-    private final PlatformRoleRepository platformRoleRepository;
+  private final PlatformRoleRepository platformRoleRepository;
 
-    public PlatformRole createIfMissing(String name, String description) {
-        return platformRoleRepository.findByName(name)
-                .orElseGet(() -> create(name, description));
-    }
+  public PlatformRole createIfMissing(String name, String description) {
+    return platformRoleRepository.findByName(name).orElseGet(() -> create(name, description));
+  }
 
-    private PlatformRole create(String name, String description) {
-        PlatformRole role = new PlatformRole();
-        role.setName(name);
-        role.setDescription(description);
-        role.setActive(true);
-        return platformRoleRepository.save(role);
-    }
+  private PlatformRole create(String name, String description) {
+    PlatformRole role = new PlatformRole();
+    role.setName(name);
+    role.setDescription(description);
+    role.setActive(true);
+    return platformRoleRepository.save(role);
+  }
 }

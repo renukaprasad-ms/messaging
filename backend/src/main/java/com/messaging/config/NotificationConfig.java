@@ -7,6 +7,9 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@EnableConfigurationProperties({EmailNotificationProperties.class, OtpProperties.class, PasswordResetProperties.class})
-public class NotificationConfig {
-}
+@EnableConfigurationProperties({
+  EmailNotificationProperties.class,
+  OtpProperties.class,
+  PasswordResetProperties.class
+})
+public class NotificationConfig {}

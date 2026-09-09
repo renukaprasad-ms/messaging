@@ -11,24 +11,24 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class RoleService {
 
-    private final RoleRepository roleRepository;
+  private final RoleRepository roleRepository;
 
-    public Role createIfMissing(String name, String description) {
-        return roleRepository.findByName(name)
-                .orElseGet(() -> create(name, description));
-    }
+  public Role createIfMissing(String name, String description) {
+    return roleRepository.findByName(name).orElseGet(() -> create(name, description));
+  }
 
-    @Transactional(readOnly = true)
-    public Role getByName(String name) {
-        return roleRepository.findByName(name)
-                .orElseThrow(() -> new NotFoundException("Role not found"));
-    }
+  @Transactional(readOnly = true)
+  public Role getByName(String name) {
+    return roleRepository
+        .findByName(name)
+        .orElseThrow(() -> new NotFoundException("Role not found"));
+  }
 
-    private Role create(String name, String description) {
-        Role role = new Role();
-        role.setName(name);
-        role.setDescription(description);
-        role.setActive(true);
-        return roleRepository.save(role);
-    }
+  private Role create(String name, String description) {
+    Role role = new Role();
+    role.setName(name);
+    role.setDescription(description);
+    role.setActive(true);
+    return roleRepository.save(role);
+  }
 }

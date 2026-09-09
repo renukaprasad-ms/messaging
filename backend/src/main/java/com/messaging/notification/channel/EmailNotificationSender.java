@@ -1,6 +1,8 @@
 package com.messaging.notification.channel;
 
+import com.messaging.common.exception.ServiceUnavailableException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
@@ -9,16 +11,20 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class EmailNotificationSender {
 
-    private final JavaMailSender mailSender;
-    private final EmailNotificationProperties properties;
+  private final JavaMailSender mailSender;
+  private final EmailNotificationProperties properties;
 
-    public void sendOtp(String destination, String otp) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(properties.getFrom());
-        message.setTo(destination);
-        message.setSubject(properties.getOtpSubject());
-        message.setText("Your verification code is " + otp + ". It expires soon.");
+  public void sendOtp(String destination, String otp) {
+    SimpleMailMessage message = new SimpleMailMessage();
+    message.setFrom(properties.getFrom());
+    message.setTo(destination);
+    message.setSubject(properties.getOtpSubject());
+    message.setText("Your verification code is " + otp + ". It expires soon.");
 
-        mailSender.send(message);
+    try {
+      mailSender.send(message);
+    } catch (MailException error) {
+      throw new ServiceUnavailableException("Email delivery is unavailable. Please try again.");
     }
+  }
 }

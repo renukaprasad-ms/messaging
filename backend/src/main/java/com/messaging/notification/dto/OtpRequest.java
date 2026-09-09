@@ -6,6 +6,6 @@ import lombok.Getter;
 @Getter
 public class OtpRequest {
 
-    private String destination;
-    private NotificationChannel channel;
+  private String destination;
+  private NotificationChannel channel;
 }

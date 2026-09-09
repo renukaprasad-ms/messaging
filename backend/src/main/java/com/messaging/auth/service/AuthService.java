@@ -3,85 +3,113 @@ package com.messaging.auth.service;
 import com.messaging.auth.dto.LoginRequest;
 import com.messaging.auth.dto.LoginResponse;
 import com.messaging.auth.dto.LoginResult;
-import com.messaging.company.service.CompanyMembershipService;
 import com.messaging.common.exception.UnauthorizedException;
+import com.messaging.company.service.CompanyMembershipService;
+import com.messaging.security.AccessPolicy;
 import com.messaging.security.jwt.JwtService;
 import com.messaging.session.dto.SessionRequestMetadata;
 import com.messaging.session.service.UserSessionService;
 import com.messaging.user.dto.UserCreateRequest;
 import com.messaging.user.entity.User;
-import com.messaging.user.repository.UserRepository;
 import com.messaging.user.service.UserService;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AuthService {
 
-    private final UserService userService;
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
-    private final UserSessionService userSessionService;
-    private final CompanyMembershipService companyMembershipService;
+  private final UserService userService;
+  private final PasswordEncoder passwordEncoder;
+  private final JwtService jwtService;
+  private final UserSessionService userSessionService;
+  private final CompanyMembershipService companyMembershipService;
+  private final AuthRateLimitService rateLimitService;
 
-    public LoginResult register(UserCreateRequest request, SessionRequestMetadata metadata) {
-        User user = userService.create(request);
-        return createLoginResult(user, metadata);
+  public LoginResult register(UserCreateRequest request, SessionRequestMetadata metadata) {
+    User user = userService.create(request);
+    return createLoginResult(user, metadata);
+  }
+
+  public LoginResult login(LoginRequest request, SessionRequestMetadata metadata) {
+    rateLimitService.checkLogin(request.identifier(), metadata.ipAddress());
+    User user =
+        userService
+            .findByIdentifier(request.identifier())
+            .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
+    user = userService.getForUpdate(user.getId());
+
+    if (request.password().getBytes(StandardCharsets.UTF_8).length > 72
+        || !passwordEncoder.matches(request.password(), user.getPassword())) {
+      throw new UnauthorizedException("Invalid credentials");
     }
 
-    public LoginResult login(LoginRequest request, SessionRequestMetadata metadata) {
-        User user = userRepository.findByEmailOrPhone(request.identifier(), request.identifier())
-                .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
+    requireEnabled(user);
 
-        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            throw new UnauthorizedException("Invalid credentials");
-        }
+    return createLoginResult(user, metadata);
+  }
 
-        return createLoginResult(user, metadata);
+  public LoginResult refresh(String refreshToken, SessionRequestMetadata metadata) {
+    if (!jwtService.isValidRefreshToken(refreshToken)) {
+      throw new UnauthorizedException("Invalid refresh token");
     }
 
-    public LoginResult refresh(String refreshToken, SessionRequestMetadata metadata) {
-        if (!jwtService.isValidRefreshToken(refreshToken)) {
-            throw new UnauthorizedException("Invalid refresh token");
-        }
-
-        User user = userService.getById(Long.valueOf(jwtService.subject(refreshToken)));
-        String nextRefreshToken = jwtService.createRefreshToken(user.getId().toString());
+    User user = userService.getForUpdate(Long.valueOf(jwtService.subject(refreshToken)));
+    requireEnabled(user);
+    String nextRefreshToken = jwtService.createRefreshToken(user.getId().toString());
+    var session =
         userSessionService.rotateRefreshToken(user, refreshToken, nextRefreshToken, metadata);
 
-        String accessToken = jwtService.createAccessToken(user.getId().toString());
-        return new LoginResult(
-                createLoginResponse(user),
-                accessToken,
-                nextRefreshToken);
-    }
+    String accessToken =
+        jwtService.createAccessToken(
+            user.getId().toString(), Map.of("sid", session.getAccessKey()));
+    return new LoginResult(createLoginResponse(user), accessToken, nextRefreshToken);
+  }
 
-    public void logout(String refreshToken) {
-        userSessionService.revokeRefreshToken(refreshToken);
-    }
+  public void logout(String refreshToken) {
+    userSessionService.revokeRefreshToken(refreshToken);
+  }
 
-    private LoginResult createLoginResult(User user, SessionRequestMetadata metadata) {
-        String subject = user.getId().toString();
-        String refreshToken = jwtService.createRefreshToken(subject);
-        userSessionService.createOrUpdateSession(user, refreshToken, metadata);
+  private LoginResult createLoginResult(User user, SessionRequestMetadata metadata) {
+    String subject = user.getId().toString();
+    String refreshToken = jwtService.createRefreshToken(subject);
+    var session = userSessionService.createOrUpdateSession(user, refreshToken, metadata);
 
-        String accessToken = jwtService.createAccessToken(subject);
-        return new LoginResult(
-                createLoginResponse(user),
-                accessToken,
-                refreshToken);
-    }
+    String accessToken =
+        jwtService.createAccessToken(subject, Map.of("sid", session.getAccessKey()));
+    return new LoginResult(createLoginResponse(user), accessToken, refreshToken);
+  }
 
-    private LoginResponse createLoginResponse(User user) {
-        boolean hasCompany = companyMembershipService.hasActiveMembership(user);
-        return new LoginResponse(
-                user.getName(),
-                user.getEmail(),
-                user.getPhone(),
-                hasCompany,
-                user.getStatus());
+  private LoginResponse createLoginResponse(User user) {
+    boolean hasCompany = companyMembershipService.hasActiveMembership(user);
+    return new LoginResponse(
+        user.getName(),
+        user.getEmail(),
+        user.getPhone(),
+        hasCompany,
+        user.getStatus(),
+        user.getPlatformRoles().stream()
+            .filter(role -> role.isActive())
+            .map(role -> role.getName())
+            .collect(Collectors.toSet()),
+        user.isPasswordChangeRequired());
+  }
+
+  public LoginResponse currentUser(Long userId) {
+    User user = userService.getById(userId);
+    requireEnabled(user);
+    return createLoginResponse(user);
+  }
+
+  private void requireEnabled(User user) {
+    if (!AccessPolicy.canSignIn(user)) {
+      throw new UnauthorizedException("Account is unavailable");
     }
+  }
 }

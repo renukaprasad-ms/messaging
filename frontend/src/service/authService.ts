@@ -17,6 +17,8 @@ export interface AuthUser {
   phone: string
   hasCompany: boolean
   status: UserStatus
+  platformRoles: Array<'ADMIN' | 'SUPERADMIN'>
+  passwordChangeRequired: boolean
 }
 
 export interface LoginRequest {
@@ -53,6 +55,26 @@ export interface ResetPasswordRequest {
 }
 
 export const authService = {
+  async changePassword(payload: {
+    currentPassword: string
+    password: string
+    confirmPassword: string
+  }) {
+    await apiClient.post('/api/auth/change-password', payload)
+  },
+  async me() {
+    const response = await apiClient.get<ApiResponse<AuthUser>>('/api/auth/me')
+    return response.data
+  },
+
+  async sendVerificationEmail() {
+    await apiClient.post('/api/users/verification/email')
+  },
+
+  async verifyEmail(otp: string) {
+    await apiClient.post('/api/users/verification/email/verify', { otp })
+  },
+
   async register(payload: RegisterRequest) {
     const response = await apiClient.post<ApiResponse<AuthUser>>('/api/auth/register', payload)
     return response.data
@@ -79,7 +101,10 @@ export const authService = {
   },
 
   async verifyResetOtp(payload: VerifyResetOtpRequest) {
-    const response = await apiClient.post<ApiResponse<VerifyResetOtpResponse>>('/api/auth/verify-reset-otp', payload)
+    const response = await apiClient.post<ApiResponse<VerifyResetOtpResponse>>(
+      '/api/auth/verify-reset-otp',
+      payload,
+    )
     return response.data
   },
 
@@ -89,7 +114,10 @@ export const authService = {
   },
 }
 
-export const getApiErrorMessage = (error: unknown, fallback = 'Something went wrong. Please try again.') => {
+export const getApiErrorMessage = (
+  error: unknown,
+  fallback = 'Something went wrong. Please try again.',
+) => {
   if (error instanceof AxiosError) {
     const response = error.response?.data as ApiResponse | undefined
     return response?.error_message ?? response?.message ?? error.message ?? fallback

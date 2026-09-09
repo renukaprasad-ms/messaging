@@ -1,47 +1,32 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
-
-type UserStatus = 'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED'
-
-interface User {
-  name: string
-  email: string
-  phone: string
-  hasCompany: boolean
-  status: UserStatus
-}
+import type { AuthUser } from '../../service/authService'
 
 interface AuthState {
-  user: User | null
-  isAuthenticated: boolean
+  user: AuthUser | null
   loading: boolean
+  initialized: boolean
 }
 
-const initialState: AuthState = {
-  user: null,
-  isAuthenticated: false,
-  loading: false,
-}
+const initialState: AuthState = { user: null, loading: false, initialized: false }
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setUser: (state, action: PayloadAction<User>) => {
+    setUser(state, action: PayloadAction<AuthUser>) {
       state.user = action.payload
-      state.isAuthenticated = true
     },
-
-    logout: (state) => {
+    logout(state) {
       state.user = null
-      state.isAuthenticated = false
     },
-
-    setLoading: (state, action: PayloadAction<boolean>) => {
+    setLoading(state, action: PayloadAction<boolean>) {
       state.loading = action.payload
+    },
+    sessionReady(state) {
+      state.initialized = true
     },
   },
 })
 
-export const { setUser, logout, setLoading } = authSlice.actions
-
+export const { setUser, logout, setLoading, sessionReady } = authSlice.actions
 export default authSlice.reducer

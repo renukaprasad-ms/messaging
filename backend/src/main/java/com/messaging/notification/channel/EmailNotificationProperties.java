@@ -9,6 +9,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.notification.email")
 public class EmailNotificationProperties {
 
-    private String from;
-    private String otpSubject = "Your verification code";
+  private String from;
+  private String otpSubject = "Your verification code";
 }

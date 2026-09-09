@@ -2,93 +2,95 @@ package com.messaging.session.entity;
 
 import com.messaging.user.entity.User;
 import jakarta.persistence.*;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.Instant;
 
 @Getter
 @Entity
 @Table(
-        name = "user_sessions",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_user_platform",
-                        columnNames = {"user_id", "platform"}
-                )
-        },
-        indexes = {
-                @Index(name = "idx_session_user_id", columnList = "user_id"),
-                @Index(name = "idx_session_refresh_token", columnList = "refresh_token")
-        }
-)
+    name = "user_sessions",
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uk_user_platform",
+          columnNames = {"user_id", "platform"})
+    },
+    indexes = {
+      @Index(name = "idx_session_user_id", columnList = "user_id"),
+      @Index(name = "idx_session_refresh_token", columnList = "refresh_token")
+    })
 public class UserSession {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Setter
+  @Column(name = "access_key", nullable = false, length = 36)
+  private String accessKey = UUID.randomUUID().toString();
 
-    @Setter
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Setter
-    @Enumerated(EnumType.STRING)
-    @Column(name = "platform", nullable = false, length = 20)
-    private SessionPlatform platform;
+  @Setter
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User user;
 
-    @Setter
-    @Column(name = "refresh_token", nullable = false, length = 64)
-    private String refreshToken;
+  @Setter
+  @Enumerated(EnumType.STRING)
+  @Column(name = "platform", nullable = false, length = 20)
+  private SessionPlatform platform;
 
-    @Setter
-    @Column(name = "device_id", length = 255)
-    private String deviceId;
+  @Setter
+  @Column(name = "refresh_token", nullable = false, length = 64)
+  private String refreshToken;
 
-    @Setter
-    @Column(name = "device_name", length = 255)
-    private String deviceName;
+  @Setter
+  @Column(name = "device_id", length = 255)
+  private String deviceId;
 
-    @Setter
-    @Column(name = "ip_address", length = 64)
-    private String ipAddress;
+  @Setter
+  @Column(name = "device_name", length = 255)
+  private String deviceName;
 
-    @Setter
-    @Column(name = "user_agent", length = 1000)
-    private String userAgent;
+  @Setter
+  @Column(name = "ip_address", length = 64)
+  private String ipAddress;
 
-    @Setter
-    @Column(name = "active", nullable = false)
-    private boolean active = true;
+  @Setter
+  @Column(name = "user_agent", length = 1000)
+  private String userAgent;
 
-    @Setter
-    @Column(name = "last_active_at")
-    private Instant lastActiveAt;
+  @Setter
+  @Column(name = "active", nullable = false)
+  private boolean active = true;
 
-    @Setter
-    @Column(name = "expires_at", nullable = false)
-    private Instant expiresAt;
+  @Setter
+  @Column(name = "last_active_at")
+  private Instant lastActiveAt;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+  @Setter
+  @Column(name = "expires_at", nullable = false)
+  private Instant expiresAt;
 
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private Instant createdAt;
 
-    @PrePersist
-    protected void onCreate() {
-        Instant now = Instant.now();
-        createdAt = now;
-        updatedAt = now;
+  @Column(name = "updated_at", nullable = false)
+  private Instant updatedAt;
 
-        if (lastActiveAt == null) {
-            lastActiveAt = now;
-        }
+  @PrePersist
+  protected void onCreate() {
+    Instant now = Instant.now();
+    createdAt = now;
+    updatedAt = now;
+
+    if (lastActiveAt == null) {
+      lastActiveAt = now;
     }
+  }
 
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = Instant.now();
-    }
+  @PreUpdate
+  protected void onUpdate() {
+    updatedAt = Instant.now();
+  }
 }

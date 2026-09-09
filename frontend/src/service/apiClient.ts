@@ -1,66 +1,64 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import { store } from '../store/store'
+import { logout, setUser } from '../store/auth/authSlice'
+import type { ApiResponse, AuthUser } from './authService'
 
-type RetryableRequestConfig = InternalAxiosRequestConfig & {
-  _retry?: boolean
+type RetryableRequest = InternalAxiosRequestConfig & { _retry?: boolean }
+const options = {
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8001',
+  withCredentials: true,
+  timeout: 15000,
 }
 
-const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8001'
+export const apiClient = axios.create(options)
+const sessionClient = axios.create(options)
+let csrfRequest: Promise<string> | null = null
+let refreshRequest: Promise<void> | null = null
 
-export const apiClient = axios.create({
-  baseURL,
-  withCredentials: true,
-})
+async function attachCsrf(config: InternalAxiosRequestConfig) {
+  if (['get', 'head', 'options'].includes(config.method ?? 'get')) return config
+  // Read the server's cookie-backed token before mutations. Concurrent requests share the lookup.
+  csrfRequest ??= sessionClient
+    .get<{ token: string }>('/api/auth/csrf')
+    .then((response) => response.data.token)
+    .finally(() => {
+      csrfRequest = null
+    })
+  config.headers.set('X-XSRF-TOKEN', await csrfRequest)
+  return config
+}
 
-const refreshClient = axios.create({
-  baseURL,
-  withCredentials: true,
-})
+apiClient.interceptors.request.use(attachCsrf)
+sessionClient.interceptors.request.use(attachCsrf)
 
-let refreshRequest: Promise<unknown> | null = null
-
-const authEndpoints = [
-  '/api/auth/register',
-  '/api/auth/login',
-  '/api/auth/refresh',
-  '/api/auth/logout',
-  '/api/auth/forgot-password',
-  '/api/auth/verify-reset-otp',
-  '/api/auth/reset-password',
-]
-
-const isAuthEndpoint = (url?: string) => {
-  if (!url) {
-    return false
-  }
-
-  return authEndpoints.some((endpoint) => url === endpoint || url.endsWith(endpoint))
+export function refreshSession(): Promise<void> {
+  refreshRequest ??= sessionClient
+    .post<ApiResponse<AuthUser>>('/api/auth/refresh')
+    .then((response) => {
+      if (response.data.data) store.dispatch(setUser(response.data.data))
+    })
+    .catch((error: AxiosError) => {
+      if (error.response?.status === 401) store.dispatch(logout())
+      throw error
+    })
+    .finally(() => {
+      refreshRequest = null
+    })
+  return refreshRequest
 }
 
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as RetryableRequestConfig | undefined
-
-    if (
-      !originalRequest ||
-      error.response?.status !== 401 ||
-      originalRequest._retry ||
-      isAuthEndpoint(originalRequest.url)
-    ) {
+    const request = error.config as RetryableRequest | undefined
+    const isPublicAuth = request?.url?.startsWith('/api/auth/') && request.url !== '/api/auth/me'
+    if (!request || error.response?.status !== 401 || request._retry || isPublicAuth) {
+      if (request?._retry && error.response?.status === 401) store.dispatch(logout())
       return Promise.reject(error)
     }
-
-    originalRequest._retry = true
-
-    try {
-      refreshRequest ??= refreshClient.post('/api/auth/refresh')
-      await refreshRequest
-      return apiClient(originalRequest)
-    } catch (refreshError) {
-      return Promise.reject(refreshError)
-    } finally {
-      refreshRequest = null
-    }
+    request._retry = true
+    await refreshSession()
+    return apiClient(request)
   },
 )
 

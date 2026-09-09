@@ -1,5 +1,6 @@
 package com.messaging.auth.controller;
 
+import com.messaging.auth.dto.ChangePasswordRequest;
 import com.messaging.auth.dto.ForgotPasswordRequest;
 import com.messaging.auth.dto.LoginRequest;
 import com.messaging.auth.dto.LoginResponse;
@@ -7,112 +8,136 @@ import com.messaging.auth.dto.LoginResult;
 import com.messaging.auth.dto.ResetPasswordRequest;
 import com.messaging.auth.dto.VerifyPasswordResetOtpRequest;
 import com.messaging.auth.dto.VerifyPasswordResetOtpResponse;
+import com.messaging.auth.service.AuthCookieService;
 import com.messaging.auth.service.AuthService;
 import com.messaging.auth.service.PasswordResetService;
+import com.messaging.auth.service.SessionRequestMetadataResolver;
 import com.messaging.common.exception.UnauthorizedException;
 import com.messaging.common.response.ApiResponse;
-import com.messaging.security.web.CookieService;
-import com.messaging.session.service.SessionRequestMetadataResolver;
+import com.messaging.user.dto.UserCreateRequest;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.messaging.user.dto.UserCreateRequest;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
-    private final PasswordResetService passwordResetService;
-    private final CookieService cookieService;
-    private final SessionRequestMetadataResolver metadataResolver;
+  private final AuthService authService;
+  private final PasswordResetService passwordResetService;
+  private final AuthCookieService cookieService;
+  private final SessionRequestMetadataResolver metadataResolver;
 
-    @PostMapping("/register")
-    public ResponseEntity<ApiResponse<LoginResponse>> register(
-            @RequestBody UserCreateRequest request,
-            HttpServletRequest httpRequest
-    ) {
-        LoginResult loginResult = authService.register(request, metadataResolver.resolve(httpRequest));
-        HttpHeaders headers = authCookies(loginResult);
+  @PostMapping("/change-password")
+  public ResponseEntity<ApiResponse<Void>> changePassword(
+      @AuthenticationPrincipal String userId, @Valid @RequestBody ChangePasswordRequest request) {
+    passwordResetService.changePassword(Long.valueOf(userId), request);
+    HttpHeaders headers = new HttpHeaders();
+    cookieService.clearTokenCookies(headers);
+    return ResponseEntity.ok()
+        .headers(headers)
+        .body(ApiResponse.success(200, "Password changed. Sign in again."));
+  }
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .headers(headers)
-                .body(ApiResponse.success(HttpStatus.CREATED.value(), loginResult.user(), "User created successfully"));
-    }
+  @GetMapping("/csrf")
+  public Map<String, String> csrf(CsrfToken token) {
+    return Map.of("token", token.getToken(), "headerName", token.getHeaderName());
+  }
 
-    @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginResponse>> login(
-            @RequestBody LoginRequest request,
-            HttpServletRequest httpRequest
-    ) {
-        LoginResult loginResult = authService.login(request, metadataResolver.resolve(httpRequest));
-        HttpHeaders headers = authCookies(loginResult);
+  @GetMapping("/me")
+  public ApiResponse<LoginResponse> me(@AuthenticationPrincipal String userId) {
+    return ApiResponse.success(200, authService.currentUser(Long.valueOf(userId)), "Current user");
+  }
 
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .headers(headers)
-                .body(ApiResponse.success(HttpStatus.OK.value(), loginResult.user(), "Login successful"));
-    }
+  @PostMapping("/register")
+  public ResponseEntity<ApiResponse<LoginResponse>> register(
+      @Valid @RequestBody UserCreateRequest request, HttpServletRequest httpRequest) {
+    LoginResult loginResult = authService.register(request, metadataResolver.resolve(httpRequest));
+    HttpHeaders headers = authCookies(loginResult);
 
-    @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<LoginResponse>> refresh(HttpServletRequest httpRequest) {
-        String refreshToken = cookieService.refreshToken(httpRequest)
-                .orElseThrow(() -> new UnauthorizedException("Refresh token is missing"));
-        LoginResult loginResult = authService.refresh(refreshToken, metadataResolver.resolve(httpRequest));
-        HttpHeaders headers = authCookies(loginResult);
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .headers(headers)
+        .body(
+            ApiResponse.success(
+                HttpStatus.CREATED.value(), loginResult.user(), "User created successfully"));
+  }
 
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .headers(headers)
-                .body(ApiResponse.success(HttpStatus.OK.value(), loginResult.user(), "Token refreshed successfully"));
-    }
+  @PostMapping("/login")
+  public ResponseEntity<ApiResponse<LoginResponse>> login(
+      @Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+    LoginResult loginResult = authService.login(request, metadataResolver.resolve(httpRequest));
+    HttpHeaders headers = authCookies(loginResult);
 
-    @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest httpRequest) {
-        cookieService.refreshToken(httpRequest).ifPresent(authService::logout);
+    return ResponseEntity.status(HttpStatus.OK)
+        .headers(headers)
+        .body(ApiResponse.success(HttpStatus.OK.value(), loginResult.user(), "Login successful"));
+  }
 
-        HttpHeaders headers = new HttpHeaders();
-        cookieService.clearTokenCookies(headers);
+  @PostMapping("/refresh")
+  public ResponseEntity<ApiResponse<LoginResponse>> refresh(HttpServletRequest httpRequest) {
+    String refreshToken =
+        cookieService
+            .refreshToken(httpRequest)
+            .orElseThrow(() -> new UnauthorizedException("Refresh token is missing"));
+    LoginResult loginResult =
+        authService.refresh(refreshToken, metadataResolver.resolve(httpRequest));
+    HttpHeaders headers = authCookies(loginResult);
 
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .headers(headers)
-                .body(ApiResponse.success(HttpStatus.OK.value(), "Logout successful"));
-    }
+    return ResponseEntity.status(HttpStatus.OK)
+        .headers(headers)
+        .body(
+            ApiResponse.success(
+                HttpStatus.OK.value(), loginResult.user(), "Token refreshed successfully"));
+  }
 
-    @PostMapping("/forgot-password")
-    public ApiResponse<Void> forgotPassword(@RequestBody ForgotPasswordRequest request) {
-        passwordResetService.forgotPassword(request);
-        return ApiResponse.success(HttpStatus.OK.value(), "If the account exists, a reset code has been sent");
-    }
+  @PostMapping("/logout")
+  public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest httpRequest) {
+    cookieService.refreshToken(httpRequest).ifPresent(authService::logout);
 
-    @PostMapping("/verify-reset-otp")
-    public ApiResponse<VerifyPasswordResetOtpResponse> verifyResetOtp(
-            @RequestBody VerifyPasswordResetOtpRequest request
-    ) {
-        VerifyPasswordResetOtpResponse response = passwordResetService.verifyOtp(request);
-        return ApiResponse.success(HttpStatus.OK.value(), response, "Reset OTP verified successfully");
-    }
+    HttpHeaders headers = new HttpHeaders();
+    cookieService.clearTokenCookies(headers);
 
-    @PostMapping("/reset-password")
-    public ApiResponse<Void> resetPassword(@RequestBody ResetPasswordRequest request) {
-        passwordResetService.resetPassword(request);
-        return ApiResponse.success(HttpStatus.OK.value(), "Password reset successfully");
-    }
+    return ResponseEntity.status(HttpStatus.OK)
+        .headers(headers)
+        .body(ApiResponse.success(HttpStatus.OK.value(), "Logout successful"));
+  }
 
-    private HttpHeaders authCookies(LoginResult loginResult) {
-        HttpHeaders headers = new HttpHeaders();
-        cookieService.addAccessTokenCookie(headers, loginResult.accessToken());
-        cookieService.addRefreshTokenCookie(headers, loginResult.refreshToken());
-        return headers;
-    }
+  @PostMapping("/forgot-password")
+  public ApiResponse<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+    passwordResetService.forgotPassword(request);
+    return ApiResponse.success(
+        HttpStatus.OK.value(), "If the account exists, a reset code has been sent");
+  }
+
+  @PostMapping("/verify-reset-otp")
+  public ApiResponse<VerifyPasswordResetOtpResponse> verifyResetOtp(
+      @Valid @RequestBody VerifyPasswordResetOtpRequest request) {
+    VerifyPasswordResetOtpResponse response = passwordResetService.verifyOtp(request);
+    return ApiResponse.success(HttpStatus.OK.value(), response, "Reset OTP verified successfully");
+  }
+
+  @PostMapping("/reset-password")
+  public ApiResponse<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+    passwordResetService.resetPassword(request);
+    return ApiResponse.success(HttpStatus.OK.value(), "Password reset successfully");
+  }
+
+  private HttpHeaders authCookies(LoginResult loginResult) {
+    HttpHeaders headers = new HttpHeaders();
+    cookieService.addAccessTokenCookie(headers, loginResult.accessToken());
+    cookieService.addRefreshTokenCookie(headers, loginResult.refreshToken());
+    return headers;
+  }
 }

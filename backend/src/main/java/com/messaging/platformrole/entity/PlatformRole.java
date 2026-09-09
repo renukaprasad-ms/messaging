@@ -1,55 +1,59 @@
 package com.messaging.platformrole.entity;
 
 import jakarta.persistence.*;
+import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.Instant;
 
 @Getter
 @Entity
 @Table(
-        name = "platform_roles",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_platform_role_name",
-                        columnNames = "name"
-                )
-        }
-)
+    name = "platform_roles",
+    uniqueConstraints = {@UniqueConstraint(name = "uk_platform_role_name", columnNames = "name")})
 public class PlatformRole {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Override
+  public boolean equals(Object other) {
+    return this == other
+        || (other instanceof PlatformRole role && id != null && id.equals(role.getId()));
+  }
 
-    @Setter
-    @Column(name = "name", nullable = false, length = 50)
-    private String name;
+  @Override
+  public int hashCode() {
+    return PlatformRole.class.hashCode();
+  }
 
-    @Setter
-    @Column(name = "description", length = 255)
-    private String description;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Setter
-    @Column(name = "active", nullable = false)
-    private boolean active = true;
+  @Setter
+  @Column(name = "name", nullable = false, length = 50)
+  private String name;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+  @Setter
+  @Column(name = "description", length = 255)
+  private String description;
 
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+  @Setter
+  @Column(name = "active", nullable = false)
+  private boolean active = true;
 
-    @PrePersist
-    protected void onCreate() {
-        Instant now = Instant.now();
-        createdAt = now;
-        updatedAt = now;
-    }
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private Instant createdAt;
 
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = Instant.now();
-    }
+  @Column(name = "updated_at", nullable = false)
+  private Instant updatedAt;
+
+  @PrePersist
+  protected void onCreate() {
+    Instant now = Instant.now();
+    createdAt = now;
+    updatedAt = now;
+  }
+
+  @PreUpdate
+  protected void onUpdate() {
+    updatedAt = Instant.now();
+  }
 }

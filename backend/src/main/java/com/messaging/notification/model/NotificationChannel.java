@@ -1,6 +1,6 @@
 package com.messaging.notification.model;
 
 public enum NotificationChannel {
-    EMAIL,
-    SMS
+  EMAIL,
+  SMS
 }
