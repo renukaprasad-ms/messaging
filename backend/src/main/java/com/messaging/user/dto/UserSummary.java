@@ -1,5 +1,7 @@
 package com.messaging.user.dto;
 
+import com.messaging.user.entity.AccountType;
 import com.messaging.user.entity.UserStatus;
 
-public record UserSummary(Long id, String name, String email, UserStatus status) {}
+public record UserSummary(
+    Long id, String name, String email, UserStatus status, AccountType accountType) {}

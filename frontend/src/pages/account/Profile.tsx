@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { getApiErrorMessage } from '../../service/authService'
 import { userService } from '../../service/userService'
@@ -13,11 +13,6 @@ export default function Profile() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    setName(user?.name ?? '')
-    setPhone(user?.phone ?? '')
-  }, [user])
 
   async function saveProfile(event: FormEvent) {
     event.preventDefault()

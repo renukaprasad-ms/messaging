@@ -15,6 +15,7 @@ import com.messaging.platformrole.repository.PlatformRoleRepository;
 import com.messaging.role.repository.RoleRepository;
 import com.messaging.session.dto.SessionRequestMetadata;
 import com.messaging.session.entity.SessionPlatform;
+import com.messaging.user.entity.AccountType;
 import com.messaging.user.entity.User;
 import com.messaging.user.entity.UserStatus;
 import com.messaging.user.repository.UserRepository;
@@ -46,6 +47,7 @@ class AuthorizationIntegrationTests extends IntegrationTestSupport {
     var user = new User();
     user.setName("Test");
     user.setEmail(UUID.randomUUID() + "@example.com");
+    user.setAccountType(AccountType.ORGANIZATION);
     user.setPassword(encoder.encode(PASSWORD));
     user.setEmailVerified(verified);
     user.setStatus(verified ? UserStatus.ACTIVE : UserStatus.PENDING_VERIFICATION);
@@ -80,7 +82,7 @@ class AuthorizationIntegrationTests extends IntegrationTestSupport {
   @Test
   void verificationAndPlatformRolesGateEntry() throws Exception {
     var pending = account(false);
-    mvc.perform(get("/api/companies").cookie(cookie(pending))).andExpect(status().isForbidden());
+    mvc.perform(get("/api/companies").cookie(cookie(pending))).andExpect(status().isOk());
     var regular = account(true);
     var regularCookie = cookie(regular);
     mvc.perform(get("/api/admin/users").cookie(regularCookie)).andExpect(status().isForbidden());
@@ -103,9 +105,8 @@ class AuthorizationIntegrationTests extends IntegrationTestSupport {
             new CompanyCreateRequest(
                 "Test",
                 "Test",
+                null,
                 "Test Ltd",
-                null,
-                null,
                 null,
                 null,
                 null,

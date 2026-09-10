@@ -21,8 +21,6 @@ public class CompanyProfileService {
     profile.setBusinessEmail(request.businessEmail());
     profile.setBusinessPhone(request.businessPhone());
     profile.setIndustry(request.industry());
-    profile.setRegistrationNumber(request.registrationNumber());
-    profile.setTaxId(request.taxId());
     return companyProfileRepository.save(profile);
   }
 

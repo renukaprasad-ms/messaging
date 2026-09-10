@@ -3,7 +3,7 @@ import apiClient from '../service/apiClient'
 import { getApiErrorMessage, type ApiResponse, type UserStatus } from '../service/authService'
 
 interface UserPage {
-  users: Array<{ id: number; name: string; email: string; status: UserStatus }>
+  users: Array<{ id: number; name: string; email: string; status: UserStatus; accountType: string }>
   hasNext: boolean
 }
 
@@ -61,6 +61,7 @@ export default function PlatformAdmin() {
                 <tr>
                   <th className="p-4">Name</th>
                   <th className="p-4">Email</th>
+                  <th className="p-4">Account</th>
                   <th className="p-4">Status</th>
                 </tr>
               </thead>
@@ -69,6 +70,7 @@ export default function PlatformAdmin() {
                   <tr key={user.id} className="border-b border-slate-100">
                     <td className="p-4 font-medium">{user.name}</td>
                     <td className="p-4">{user.email}</td>
+                    <td className="p-4">{user.accountType.replaceAll('_', ' ')}</td>
                     <td className="p-4">
                       <span className="rounded-md bg-indigo-50 px-2 py-1 text-xs text-indigo-700">
                         {user.status.replaceAll('_', ' ')}

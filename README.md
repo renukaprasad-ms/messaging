@@ -53,20 +53,21 @@ For an existing Hibernate-managed database, back it up and compare its schema to
 
 ## Small server defaults: 2 CPUs / 2 GiB RAM
 
-The default Compose stack runs the frontend, backend, PostgreSQL, and Redis. Kafka is optional and excluded by default.
+The default Compose stack runs the frontend, backend, PostgreSQL, Redis, and Kafka.
 
 | Service | Container memory limit |
 | --- | ---: |
 | Backend | 896 MiB (512 MiB Java heap) |
 | PostgreSQL | 384 MiB |
 | Redis | 128 MiB (64 MiB data cap, no eviction) |
+| Kafka | Configure for your host capacity |
 | Nginx frontend | 64 MiB |
 
 These limits total 1,472 MiB, leaving approximately 576 MiB for the OS and Docker on a 2 GiB host. They are starting limits, not a throughput guarantee. Build images on a workstation or CI; building Maven and Node images on this host can exceed its memory budget. Monitor resident memory, CPU, database connections, response latency, and Redis capacity under representative load.
 
 The backend shares one five-connection pool when read and write database settings match. It uses at most 25 HTTP worker threads. Lists return 25 records, fetch related company/role data together, and avoid total-count queries. Membership checks use indexed `EXISTS` queries. Page-number pagination has O(offset + page size) database work at deep pages; switch to cursor pagination if those lists become large. Password checking is O(password length), bounded at 72 bytes; BCrypt is intentionally CPU-expensive and login requests are rate-limited.
 
-Email uses SMTP directly by default, with five-second network timeouts; delivery failures return an error and allow retry. Configure a real SMTP provider. **SMS is not implemented** and explicitly reports unavailable; it never logs OTPs. For a larger deployment, set `APP_NOTIFICATION_ASYNC=true` and enable the Compose `async` profile to run Kafka. Publishing waits for broker acknowledgement; consumers retry twice and then publish to a `.DLT` topic. Delivery is at-least-once, so duplicate email is possible. Restrict broker access, monitor dead letters, and do not replay expired OTPs. Kafka is outside the small-host memory budget.
+Email uses SMTP directly when async notifications are disabled, with five-second network timeouts; delivery failures return an error and allow retry. Configure a real SMTP provider. **SMS is not implemented** and explicitly reports unavailable; it never logs OTPs. By default, `APP_NOTIFICATION_ASYNC=true` and Compose starts Kafka for queued notification delivery. Publishing waits for broker acknowledgement; consumers retry twice and then publish to a `.DLT` topic. Delivery is at-least-once, so duplicate email is possible. Restrict broker access, monitor dead letters, and do not replay expired OTPs. Kafka adds memory overhead beyond the small-host baseline.
 
 Use HTTPS with `JWT_COOKIE_SECURE=true`, keep signing keys and SMTP credentials outside Git, and configure `APP_CORS_ALLOWED_ORIGINS` for the actual frontend origin. PostgreSQL and Redis host ports bind only to loopback. The application ignores raw forwarding headers; configure trusted proxy handling before relying on client IP limits behind a proxy. Clients sharing an IP also share its 30-login-per-minute limit.
 

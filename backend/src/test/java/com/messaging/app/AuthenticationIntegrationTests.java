@@ -13,6 +13,7 @@ import com.messaging.security.jwt.JwtService;
 import com.messaging.session.dto.SessionRequestMetadata;
 import com.messaging.session.entity.SessionPlatform;
 import com.messaging.user.dto.UserCreateRequest;
+import com.messaging.user.entity.AccountType;
 import com.messaging.user.entity.UserStatus;
 import com.messaging.user.repository.UserRepository;
 import com.messaging.user.service.UserService;
@@ -40,7 +41,10 @@ class AuthenticationIntegrationTests extends IntegrationTestSupport {
 
   private String account() {
     String email = UUID.randomUUID() + "@example.com";
-    auth.register(new UserCreateRequest("Test User", email, PASSWORD, PASSWORD, null), META);
+    auth.register(
+        new UserCreateRequest(
+            "Test User", email, PASSWORD, PASSWORD, null, null, AccountType.INDIVIDUAL),
+        META);
     return email;
   }
 

@@ -24,6 +24,19 @@ public final class AccessPolicy {
     }
   }
 
+  public static void requireUsableAccount(User user) {
+    if (!canSignIn(user) || user.isPasswordChangeRequired()) {
+      throw new ForbiddenException("Account is unavailable");
+    }
+  }
+
+  public static void requireOrganizationAccount(User user) {
+    requireUsableAccount(user);
+    if (user.getAccountType() != com.messaging.user.entity.AccountType.ORGANIZATION) {
+      throw new ForbiddenException("Choose an organization account before creating a company");
+    }
+  }
+
   public static boolean canEnterCompany(CompanyMembership membership) {
     return membership.getStatus() == MembershipStatus.ACTIVE
         && membership.getCompany().getStatus() == CompanyStatus.ACTIVE

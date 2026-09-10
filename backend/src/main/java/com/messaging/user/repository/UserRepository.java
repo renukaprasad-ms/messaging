@@ -16,7 +16,7 @@ import org.springframework.data.repository.query.Param;
 public interface UserRepository extends JpaRepository<User, Long> {
 
   @Query(
-      "select new com.messaging.user.dto.UserSummary(u.id, u.name, u.email, u.status) from User u order by u.id")
+      "select new com.messaging.user.dto.UserSummary(u.id, u.name, u.email, u.status, u.accountType) from User u order by u.id")
   Slice<UserSummary> listSummaries(Pageable pageable);
 
   @EntityGraph(attributePaths = "platformRoles")

@@ -16,6 +16,7 @@ import com.messaging.company.repository.CompanyRepository;
 import com.messaging.role.entity.Role;
 import com.messaging.role.service.RoleService;
 import com.messaging.security.AccessPolicy;
+import com.messaging.subscription.service.SubscriptionService;
 import com.messaging.user.entity.User;
 import com.messaging.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -35,11 +36,12 @@ public class CompanyService {
   private final RoleService roleService;
   private final UserService userService;
   private final CompanyAccessService companyAccessService;
+  private final SubscriptionService subscriptionService;
 
   @Transactional
   public CompanyResponse getCompany(Long companyId, Long userId) {
     User user = userService.getById(userId);
-    AccessPolicy.requireActive(user);
+    AccessPolicy.requireUsableAccount(user);
     if (AccessPolicy.isPlatformAdmin(user)) {
       Company company =
           companyRepository
@@ -61,12 +63,13 @@ public class CompanyService {
   @Transactional
   public CompanyResponse createCompany(CompanyCreateRequest request, Long userId) {
     User user = userService.getById(userId);
-    AccessPolicy.requireActive(user);
+    AccessPolicy.requireOrganizationAccount(user);
     Role ownerRole = roleService.getByName("OWNER");
 
     Company company = new Company();
     company.setName(request.name());
     company.setDisplayName(request.displayName());
+    company.setLogoUrl(request.logoUrl());
     Company savedCompany = companyRepository.save(company);
 
     companyProfileService.createProfile(savedCompany, request);
@@ -75,6 +78,7 @@ public class CompanyService {
 
     CompanyMembership membership =
         companyMembershipService.createOwnerMembership(savedCompany, user, ownerRole);
+    subscriptionService.assignDefaultPlan(savedCompany);
     return toResponse(membership);
   }
 
@@ -82,7 +86,7 @@ public class CompanyService {
   public CompanyPage getCompaniesForUser(Long userId, int page) {
     if (page < 0) throw new BadRequestException("Page must not be negative");
     User user = userService.getById(userId);
-    AccessPolicy.requireActive(user);
+    AccessPolicy.requireUsableAccount(user);
     if (AccessPolicy.isPlatformAdmin(user)) {
       var companies = companyRepository.findAllByOrderById(PageRequest.of(page, 25));
       String role = AccessPolicy.platformCompanyRole(user);
@@ -107,7 +111,12 @@ public class CompanyService {
 
   private CompanySummaryResponse toSummary(Company company, String role) {
     return new CompanySummaryResponse(
-        company.getId(), company.getName(), company.getDisplayName(), company.getStatus().name(), role);
+        company.getId(),
+        company.getName(),
+        company.getDisplayName(),
+        company.getLogoUrl(),
+        company.getStatus().name(),
+        role);
   }
 
   private CompanyResponse toResponse(Company company, String role) {
@@ -117,6 +126,7 @@ public class CompanyService {
         company.getId(),
         company.getName(),
         company.getDisplayName(),
+        company.getLogoUrl(),
         company.getStatus().name(),
         role,
         profile == null
@@ -126,9 +136,7 @@ public class CompanyService {
                 profile.getWebsite(),
                 profile.getBusinessEmail(),
                 profile.getBusinessPhone(),
-                profile.getIndustry(),
-                profile.getRegistrationNumber(),
-                profile.getTaxId()),
+                profile.getIndustry()),
         address == null
             ? null
             : new CompanyAddressResponse(

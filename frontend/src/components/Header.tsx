@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import { FiChevronDown, FiMenu, FiPlus } from 'react-icons/fi'
+import { useSelector } from 'react-redux'
 import { Link, useLocation, useNavigate } from 'react-router'
 import type { CompanySummary } from '../service/companyService'
+import type { RootState } from '../store/store'
 
 export default function Header({
   menuOpen,
@@ -18,11 +20,14 @@ export default function Header({
 }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
+  const user = useSelector((state: RootState) => state.auth.user)
   const [open, setOpen] = useState(false)
   const title =
     pathname === '/admin'
       ? 'Platform administration'
-      : pathname === '/account/profile'
+      : pathname === '/admin/subscriptions'
+        ? 'Subscription plans'
+        : pathname === '/account/profile'
         ? 'Profile'
         : pathname === '/account/security'
           ? 'Security'
@@ -41,8 +46,11 @@ export default function Header({
   }, [companies, pathname])
 
   const companyIdFromPath = pathname.match(/^\/companies\/(\d+)/)?.[1]
+  const isOrg = user?.accountType === 'ORGANIZATION'
   const workspaceName =
-    activeCompany?.displayName || activeCompany?.name || (companyIdFromPath ? 'Company' : 'No company')
+    activeCompany?.displayName ||
+    activeCompany?.name ||
+    (isOrg && companyIdFromPath ? 'Organization' : 'Messaging')
 
   return (
     <header className="app-header">
@@ -56,20 +64,78 @@ export default function Header({
         >
           <FiMenu aria-hidden="true" />
         </button>
-        <div>
-          <p className="text-lg font-semibold tracking-tight">{title}</p>
-          <p className="mt-1 hidden text-[11px] text-slate-500 sm:block">
-            Messaging, broadcasts, advertising and account health
-          </p>
-        </div>
+        {isOrg ? (
+          <WorkspaceSwitcher
+            open={open}
+            setOpen={setOpen}
+            companies={companies}
+            hasMoreCompanies={hasMoreCompanies}
+            onLoadMoreCompanies={onLoadMoreCompanies}
+            workspaceName={workspaceName}
+          />
+        ) : (
+          <div className="flex items-center gap-3">
+            <span className="flex size-9 items-center justify-center rounded-[10px] bg-indigo-500 text-sm font-bold text-white">
+              ...
+            </span>
+            <div>
+              <p className="text-lg font-semibold tracking-tight">Messaging</p>
+              <p className="mt-1 hidden text-[11px] text-slate-500 sm:block">{title}</p>
+            </div>
+          </div>
+        )}
       </div>
+      <div className="flex items-center gap-3">
+        {user?.status === 'PENDING_VERIFICATION' && (
+          <span className="rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">
+            Verification pending
+          </span>
+        )}
+        {isOrg && activeCompany?.logoUrl && (
+          <img
+            src={activeCompany.logoUrl}
+            alt=""
+            className="hidden size-9 rounded-[10px] object-cover ring-1 ring-slate-200 sm:block"
+          />
+        )}
+        {user?.profilePhotoUrl ? (
+          <img
+            src={user.profilePhotoUrl}
+            alt=""
+            className="size-9 rounded-full object-cover ring-1 ring-slate-200"
+          />
+        ) : (
+          <span className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600">
+            {user?.name?.slice(0, 1).toUpperCase() ?? 'U'}
+          </span>
+        )}
+      </div>
+    </header>
+  )
+
+  function WorkspaceSwitcher({
+    open,
+    setOpen,
+    companies,
+    hasMoreCompanies,
+    onLoadMoreCompanies,
+    workspaceName,
+  }: {
+    open: boolean
+    setOpen: (open: boolean) => void
+    companies: CompanySummary[]
+    hasMoreCompanies: boolean
+    onLoadMoreCompanies: () => Promise<void>
+    workspaceName: string
+  }) {
+    return (
       <div className="relative">
         <button
           type="button"
           className="workspace-switcher"
           aria-expanded={open}
           aria-haspopup="menu"
-          onClick={() => setOpen((current) => !current)}
+          onClick={() => setOpen(!open)}
         >
           <span className="min-w-0 truncate">{workspaceName}</span>
           <FiChevronDown aria-hidden="true" />
@@ -116,6 +182,6 @@ export default function Header({
           </div>
         )}
       </div>
-    </header>
-  )
+    )
+  }
 }

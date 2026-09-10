@@ -13,6 +13,7 @@ const user: AuthUser = {
   email: 'test@example.com',
   phone: '',
   status: 'ACTIVE',
+  accountType: 'ORGANIZATION',
   hasCompany: true,
   platformRoles: [],
   passwordChangeRequired: false,
@@ -56,9 +57,9 @@ describe('role entry', () => {
     visit({ ...user, platformRoles: ['SUPERADMIN'] })
     expect(screen.getByText('Admin content')).toBeInTheDocument()
   })
-  it('requires verification before entry', () => {
+  it('allows pending users into authenticated routes', () => {
     visit({ ...user, status: 'PENDING_VERIFICATION' })
-    expect(screen.getByText('Verification page')).toBeInTheDocument()
+    expect(screen.getByText('Forbidden page')).toBeInTheDocument()
   })
   it('rejects suspended users', () => {
     visit({ ...user, status: 'SUSPENDED' })
@@ -71,6 +72,8 @@ describe('role entry', () => {
   it('selects the landing page by account state', () => {
     expect(homePath({ ...user, platformRoles: ['SUPERADMIN'] })).toBe('/admin')
     expect(homePath({ ...user, hasCompany: false })).toBe('/company/create')
+    expect(homePath({ ...user, accountType: 'INDIVIDUAL', hasCompany: false })).toBe('/')
+    expect(homePath({ ...user, status: 'PENDING_VERIFICATION' })).toBe('/')
     expect(homePath(user)).toBe('/')
   })
 })

@@ -98,6 +98,17 @@ app:
       resend-cooldown: ${OTP_RESEND_COOLDOWN:1m}
       length: ${OTP_LENGTH:6}
       max-attempts: ${OTP_MAX_ATTEMPTS:5}
+  media:
+    storage:
+      provider: supabase
+      endpoint: ${SUPABASE_STORAGE_S3_ENDPOINT:}
+      access-key: ${SUPABASE_STORAGE_ACCESS_KEY:}
+      secret-key: ${SUPABASE_STORAGE_SECRET_KEY:}
+      region: ${SUPABASE_STORAGE_REGION:us-east-1}
+      public-base-url: ${SUPABASE_STORAGE_PUBLIC_BASE_URL:}
+      bucket: ${SUPABASE_STORAGE_BUCKET:messaging-assets}
+      signed-upload-ttl: ${MEDIA_SIGNED_UPLOAD_TTL:2h}
+      max-upload-bytes: ${MEDIA_MAX_UPLOAD_BYTES:5242880}
   security:
     jwt:
       issuer: ${JWT_ISSUER:messaging}

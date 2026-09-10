@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { FiLogOut, FiShield, FiUser } from 'react-icons/fi'
+import {
+  FiCreditCard,
+  FiInbox,
+  FiLogOut,
+  FiRadio,
+  FiShield,
+  FiTarget,
+  FiUser,
+  FiUsers,
+} from 'react-icons/fi'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import Header from '../components/Header'
 import { isPlatformAdmin } from '../auth/access'
@@ -62,6 +71,7 @@ export default function MainLayout() {
   const companyIdFromPath = pathname.match(/^\/companies\/(\d+)/)?.[1]
   const companyProfilePath =
     companyIdFromPath || activeCompany ? `/companies/${companyIdFromPath ?? activeCompany?.id}` : ''
+  const isOrganization = user?.accountType === 'ORGANIZATION'
 
   async function signOut() {
     setAccountError('')
@@ -112,55 +122,44 @@ export default function MainLayout() {
                   <NavLink to="/admin" className={linkClass}>
                     <span aria-hidden="true">-</span>User administration
                   </NavLink>
+                  <NavLink to="/admin/subscriptions" className={linkClass}>
+                    <FiCreditCard aria-hidden="true" />Subscriptions
+                  </NavLink>
                 </>
               )}
               <p className="sidebar-label">MESSAGING</p>
-              {['Inbox', 'Broadcasts', 'Contacts', 'Templates'].map((label) => (
-                <div
-                  key={label}
-                  className="sidebar-link opacity-50"
-                  aria-disabled="true"
-                  title="Coming soon"
-                >
-                  <span aria-hidden="true">-</span>
-                  {label}
-                </div>
-              ))}
-              <p className="sidebar-label">MARKETING</p>
-              <div className="sidebar-link opacity-50" aria-disabled="true" title="Coming soon">
-                <span aria-hidden="true">-</span>Ad Center
-              </div>
-              {companyProfilePath && (
+              <NavLink to="/inbox" className={linkClass}>
+                <FiInbox aria-hidden="true" />Inbox
+              </NavLink>
+              <NavLink to="/broadcasts" className={linkClass}>
+                <FiRadio aria-hidden="true" />Broadcast
+              </NavLink>
+              <NavLink to="/ad-center" className={linkClass}>
+                <FiTarget aria-hidden="true" />Ad Center
+              </NavLink>
+              <NavLink to="/contacts" className={linkClass}>
+                <FiUsers aria-hidden="true" />Contacts
+              </NavLink>
+              {isOrganization && companyProfilePath && (
                 <>
-                  <p className="sidebar-label">COMPANY</p>
-                  <NavLink to={companyProfilePath} className={linkClass}>
-                    <FiUser aria-hidden="true" />Profile
+                  <p className="sidebar-label">ORGANIZATION</p>
+                  <NavLink to="/organization" className={linkClass}>
+                    <FiUsers aria-hidden="true" />Organization
+                  </NavLink>
+                  <NavLink to={`${companyProfilePath}/subscription`} className={linkClass}>
+                    <FiCreditCard aria-hidden="true" />Subscription
                   </NavLink>
                 </>
               )}
             </>
           )}
           <p className="sidebar-label">ACCOUNT</p>
-          {user?.status === 'PENDING_VERIFICATION' && (
-            <NavLink to="/verify-email" className={linkClass}>
-              <span aria-hidden="true">-</span>Verify email
-            </NavLink>
-          )}
           <NavLink to="/account/profile" className={linkClass}>
             <FiUser aria-hidden="true" />Profile
           </NavLink>
           <NavLink to="/account/security" className={linkClass}>
             <FiShield aria-hidden="true" />Security
           </NavLink>
-          <button
-            type="button"
-            onClick={signOut}
-            disabled={signingOut}
-            className="sidebar-link w-full"
-          >
-            <FiLogOut aria-hidden="true" />
-            {signingOut ? 'Signing out...' : 'Logout'}
-          </button>
           {accountError && (
             <p role="alert" className="px-3 pt-2 text-xs text-red-600">
               {accountError}
@@ -173,6 +172,15 @@ export default function MainLayout() {
           <p className="mt-2 text-indigo-600">
             {user?.platformRoles.join(' / ') || 'Workspace account'}
           </p>
+          <button
+            type="button"
+            onClick={signOut}
+            disabled={signingOut}
+            className="sidebar-link mt-4 w-full"
+          >
+            <FiLogOut aria-hidden="true" />
+            {signingOut ? 'Signing out...' : 'Logout'}
+          </button>
         </div>
       </aside>
       <div className="min-w-0 lg:ml-[248px]">

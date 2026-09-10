@@ -7,17 +7,18 @@ it('restores a session only once when startup runs concurrently', async () => {
     email: 'test@example.com',
     phone: '',
     status: 'ACTIVE',
+    accountType: 'INDIVIDUAL',
     hasCompany: true,
     platformRoles: [],
     passwordChangeRequired: false,
   }
   const me = vi.fn().mockResolvedValue({ data: account })
-  vi.doMock('../service/authService', () => ({ authService: { me } }))
+  vi.doMock('../service/userService', () => ({ userService: { me } }))
   const { restoreSession } = await import('./restoreSession')
   const { store } = await import('../store/store')
   await Promise.all([restoreSession(), restoreSession()])
   expect(me).toHaveBeenCalledTimes(1)
   expect(store.getState().auth.user?.email).toBe(account.email)
   expect(store.getState().auth.initialized).toBe(true)
-  vi.doUnmock('../service/authService')
+  vi.doUnmock('../service/userService')
 })

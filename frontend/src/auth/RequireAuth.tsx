@@ -4,10 +4,8 @@ import type { RootState } from '../store/store'
 import { isPlatformAdmin } from './access'
 
 export default function RequireAuth({
-  verified = true,
   platformAdmin = false,
 }: {
-  verified?: boolean
   platformAdmin?: boolean
 }) {
   const { user, initialized } = useSelector((state: RootState) => state.auth)
@@ -22,7 +20,6 @@ export default function RequireAuth({
     return <Navigate to="/login" replace />
   if (user.passwordChangeRequired && location.pathname !== '/change-password')
     return <Navigate to="/change-password" replace />
-  if (verified && user.status !== 'ACTIVE') return <Navigate to="/verify-email" replace />
   if (platformAdmin && !isPlatformAdmin(user)) return <Navigate to="/forbidden" replace />
   return <Outlet />
 }

@@ -23,6 +23,11 @@ public class User {
   @Column(name = "password_change_required", nullable = false)
   private boolean passwordChangeRequired;
 
+  @Setter
+  @Enumerated(EnumType.STRING)
+  @Column(name = "account_type", nullable = false, length = 30)
+  private AccountType accountType = AccountType.INDIVIDUAL;
+
   @ManyToMany(fetch = FetchType.EAGER)
   @JoinTable(
       name = "user_platform_roles",
@@ -49,6 +54,10 @@ public class User {
   @Setter
   @Column(name = "phone", length = 30)
   private String phone;
+
+  @Setter
+  @Column(name = "profile_photo_url", length = 1000)
+  private String profilePhotoUrl;
 
   @Setter
   @Enumerated(EnumType.STRING)

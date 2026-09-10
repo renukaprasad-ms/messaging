@@ -82,8 +82,6 @@ export default function CompanyDetails() {
               <Detail label="Website" value={company.profile?.website} />
               <Detail label="Business email" value={company.profile?.businessEmail} />
               <Detail label="Business phone" value={company.profile?.businessPhone} />
-              <Detail label="Registration number" value={company.profile?.registrationNumber} />
-              <Detail label="Tax ID" value={company.profile?.taxId} />
               <Detail label="Status" value={company.status} />
             </dl>
             {editable ? (

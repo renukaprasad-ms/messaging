@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { AuthUser } from '../../service/authService'
+import { readStoredUser } from './authStorage'
 
 interface AuthState {
   user: AuthUser | null
@@ -7,7 +8,7 @@ interface AuthState {
   initialized: boolean
 }
 
-const initialState: AuthState = { user: null, loading: false, initialized: false }
+const initialState: AuthState = { user: readStoredUser(), loading: false, initialized: false }
 
 const authSlice = createSlice({
   name: 'auth',

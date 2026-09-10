@@ -5,6 +5,4 @@ public record CompanyProfileResponse(
     String website,
     String businessEmail,
     String businessPhone,
-    String industry,
-    String registrationNumber,
-    String taxId) {}
+    String industry) {}

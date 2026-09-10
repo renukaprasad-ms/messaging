@@ -20,7 +20,7 @@ public class CompanyProfile {
   @Setter
   private Company company;
 
-  @Column(name = "legal_name", nullable = false, length = 200)
+  @Column(name = "legal_name", length = 200)
   @Setter
   private String legalName;
 
@@ -39,12 +39,4 @@ public class CompanyProfile {
   @Column(name = "industry", length = 100)
   @Setter
   private String industry;
-
-  @Column(name = "registration_number", length = 100)
-  @Setter
-  private String registrationNumber;
-
-  @Column(name = "tax_id", length = 100)
-  @Setter
-  private String taxId;
 }

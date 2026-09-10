@@ -4,13 +4,12 @@ import type { ApiResponse } from './authService'
 export interface CompanyCreateRequest {
   name: string
   displayName: string
+  logoUrl: string
   legalName: string
   website: string
   businessEmail: string
   businessPhone: string
   industry: string
-  registrationNumber: string
-  taxId: string
   addressLine1: string
   addressLine2: string
   city: string
@@ -23,6 +22,7 @@ export interface CompanySummary {
   id: number
   name: string
   displayName?: string
+  logoUrl?: string
   status: string
   role: string
 }
@@ -34,8 +34,6 @@ export interface CompanyResponse extends CompanySummary {
     businessEmail?: string
     businessPhone?: string
     industry?: string
-    registrationNumber?: string
-    taxId?: string
   }
   address?: {
     addressLine1: string

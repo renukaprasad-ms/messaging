@@ -9,10 +9,11 @@ export function isPlatformAdmin(user: AuthUser | null): boolean {
 
 export function homePath(user: AuthUser): string {
   if (user.passwordChangeRequired) return '/change-password'
-  if (user.status === 'PENDING_VERIFICATION') return '/verify-email'
+  if (user.status === 'PENDING_VERIFICATION') return '/'
   if (user.status !== 'ACTIVE') return '/login'
   if (isPlatformAdmin(user)) return '/admin'
-  return user.hasCompany ? '/' : '/company/create'
+  if (user.accountType === 'ORGANIZATION' && !user.hasCompany) return '/company/create'
+  return '/'
 }
 
 export function canManageCompany(role: string): boolean {

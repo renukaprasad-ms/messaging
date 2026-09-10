@@ -1,8 +1,10 @@
 package com.messaging.user.service;
 
+import com.messaging.auth.dto.LoginResponse;
 import com.messaging.common.exception.BadRequestException;
 import com.messaging.common.exception.ConflictException;
 import com.messaging.common.exception.NotFoundException;
+import com.messaging.company.service.CompanyMembershipService;
 import com.messaging.user.dto.UserCreateRequest;
 import com.messaging.user.dto.UserPage;
 import com.messaging.user.dto.UserUpdateRequest;
@@ -11,6 +13,7 @@ import com.messaging.user.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +27,7 @@ public class UserService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final EntityManager entityManager;
+  private final CompanyMembershipService companyMembershipService;
 
   public Optional<User> findByIdentifier(String identifier) {
     return userRepository.findByEmailOrPhone(identifier, identifier);
@@ -63,6 +67,8 @@ public class UserService {
     user.setEmail(request.email());
     user.setPassword(passwordEncoder.encode(request.password()));
     user.setPhone(request.phone());
+    user.setProfilePhotoUrl(request.profilePhotoUrl());
+    user.setAccountType(request.accountType());
 
     return userRepository.save(user);
   }
@@ -77,7 +83,26 @@ public class UserService {
     User user = getForUpdate(id);
     user.setName(request.name().trim());
     user.setPhone(request.phone());
+    user.setProfilePhotoUrl(request.profilePhotoUrl());
     return userRepository.save(user);
+  }
+
+  @Transactional(readOnly = true)
+  public LoginResponse toLoginResponse(User user) {
+    boolean hasCompany = companyMembershipService.hasActiveMembership(user);
+    return new LoginResponse(
+        user.getName(),
+        user.getEmail(),
+        user.getPhone(),
+        user.getProfilePhotoUrl(),
+        user.getAccountType(),
+        hasCompany,
+        user.getStatus(),
+        user.getPlatformRoles().stream()
+            .filter(role -> role.isActive())
+            .map(role -> role.getName())
+            .collect(Collectors.toSet()),
+        user.isPasswordChangeRequired());
   }
 
   public void save(User user) {

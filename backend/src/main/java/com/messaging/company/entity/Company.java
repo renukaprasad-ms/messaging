@@ -24,6 +24,10 @@ public class Company {
   @Setter
   private String displayName;
 
+  @Column(name = "logo_url", length = 1000)
+  @Setter
+  private String logoUrl;
+
   @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false, length = 30)
   @Setter

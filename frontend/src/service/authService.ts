@@ -10,11 +10,14 @@ export interface ApiResponse<T = void> {
 }
 
 export type UserStatus = 'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED'
+export type AccountType = 'INDIVIDUAL' | 'ORGANIZATION'
 
 export interface AuthUser {
   name: string
   email: string
   phone: string
+  profilePhotoUrl?: string
+  accountType: AccountType
   hasCompany: boolean
   status: UserStatus
   platformRoles: Array<'ADMIN' | 'SUPERADMIN'>
@@ -33,6 +36,8 @@ export interface RegisterRequest {
   password: string
   confirmPassword: string
   phone: string
+  profilePhotoUrl: string
+  accountType: AccountType
 }
 
 export interface ForgotPasswordRequest {

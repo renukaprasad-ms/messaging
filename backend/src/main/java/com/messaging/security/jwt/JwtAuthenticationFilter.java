@@ -65,14 +65,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     var authorities = new ArrayList<SimpleGrantedAuthority>();
-    if (user.getStatus() == UserStatus.ACTIVE
-        && user.isEmailVerified()
+    if ((user.getStatus() == UserStatus.ACTIVE
+            || user.getStatus() == UserStatus.PENDING_VERIFICATION)
         && !user.isPasswordChangeRequired()) {
       authorities.add(new SimpleGrantedAuthority("WORKSPACE_ACCESS"));
-      user.getPlatformRoles().stream()
-          .filter(role -> role.isActive())
-          .forEach(
-              role -> authorities.add(new SimpleGrantedAuthority("PLATFORM_" + role.getName())));
+      if (user.getStatus() == UserStatus.ACTIVE && user.isEmailVerified()) {
+        user.getPlatformRoles().stream()
+            .filter(role -> role.isActive())
+            .forEach(
+                role -> authorities.add(new SimpleGrantedAuthority("PLATFORM_" + role.getName())));
+      }
     }
     var authentication =
         new UsernamePasswordAuthenticationToken(user.getId().toString(), null, authorities);

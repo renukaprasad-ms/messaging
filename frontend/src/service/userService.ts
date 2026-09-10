@@ -4,6 +4,7 @@ import type { ApiResponse, AuthUser } from './authService'
 export interface AccountUpdateRequest {
   name: string
   phone: string
+  profilePhotoUrl?: string
 }
 
 export const userService = {

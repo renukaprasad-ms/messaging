@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
 import { getApiErrorMessage } from '../../service/authService'
 import { companyService, type CompanyCreateRequest } from '../../service/companyService'
+import { uploadImage } from '../../service/storageService'
 import { userService } from '../../service/userService'
 import { setUser } from '../../store/auth/authSlice'
 import type { RootState } from '../../store/store'
@@ -10,13 +11,12 @@ import type { RootState } from '../../store/store'
 const initialForm: CompanyCreateRequest = {
   name: '',
   displayName: '',
+  logoUrl: '',
   legalName: '',
   website: '',
   businessEmail: '',
   businessPhone: '',
   industry: '',
-  registrationNumber: '',
-  taxId: '',
   addressLine1: '',
   addressLine2: '',
   city: '',
@@ -30,6 +30,7 @@ const CompanyCreate = () => {
   const navigate = useNavigate()
   const user = useSelector((state: RootState) => state.auth.user)
   const [form, setForm] = useState(initialForm)
+  const [companyLogo, setCompanyLogo] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -44,12 +45,14 @@ const CompanyCreate = () => {
     setIsSubmitting(true)
 
     try {
-      await companyService.createCompany(form)
+      const logoUrl = await uploadImage('COMPANY_LOGO', companyLogo)
+      const created = await companyService.createCompany({ ...form, logoUrl })
       if (user) {
         const response = await userService.me()
         if (response.data) dispatch(setUser(response.data))
       }
-      navigate('/', { replace: true })
+      const companyId = created.data?.id
+      navigate(companyId ? `/companies/${companyId}/subscription` : '/', { replace: true })
     } catch (err) {
       setError(getApiErrorMessage(err, 'Unable to create company. Please try again.'))
     } finally {
@@ -78,11 +81,11 @@ const CompanyCreate = () => {
             value={form.displayName}
             onChange={updateField('displayName')}
           />
+          <FileField label="Company photo" onChange={setCompanyLogo} />
           <Field
             label="Legal name"
             value={form.legalName}
             onChange={updateField('legalName')}
-            required
           />
           <Field label="Industry" value={form.industry} onChange={updateField('industry')} />
           <Field label="Website" value={form.website} onChange={updateField('website')} />
@@ -96,12 +99,6 @@ const CompanyCreate = () => {
             value={form.businessPhone}
             onChange={updateField('businessPhone')}
           />
-          <Field
-            label="Registration number"
-            value={form.registrationNumber}
-            onChange={updateField('registrationNumber')}
-          />
-          <Field label="Tax ID" value={form.taxId} onChange={updateField('taxId')} />
         </div>
 
         <div className="grid gap-5 md:grid-cols-2">
@@ -158,5 +155,19 @@ const Field = ({ label, value, onChange, required = false }: FieldProps) => (
     />
   </label>
 )
+
+function FileField({ label, onChange }: { label: string; onChange: (file: File | null) => void }) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-medium text-slate-800">{label}</span>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(event) => onChange(event.target.files?.[0] ?? null)}
+        className="block w-full text-sm text-slate-500 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700"
+      />
+    </label>
+  )
+}
 
 export default CompanyCreate

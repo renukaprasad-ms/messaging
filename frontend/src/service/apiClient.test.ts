@@ -60,6 +60,7 @@ it('clears a stale user when refresh is rejected and never loops', async () => {
         email: 'test@example.com',
         phone: '',
         hasCompany: true,
+        accountType: 'INDIVIDUAL',
         status: 'ACTIVE',
         platformRoles: [],
         passwordChangeRequired: false,

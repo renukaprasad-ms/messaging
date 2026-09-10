@@ -1,10 +1,8 @@
 package com.messaging.auth.service;
 
 import com.messaging.auth.dto.LoginRequest;
-import com.messaging.auth.dto.LoginResponse;
 import com.messaging.auth.dto.LoginResult;
 import com.messaging.common.exception.UnauthorizedException;
-import com.messaging.company.service.CompanyMembershipService;
 import com.messaging.security.AccessPolicy;
 import com.messaging.security.jwt.JwtService;
 import com.messaging.session.dto.SessionRequestMetadata;
@@ -14,7 +12,6 @@ import com.messaging.user.entity.User;
 import com.messaging.user.service.UserService;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,7 +26,6 @@ public class AuthService {
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
   private final UserSessionService userSessionService;
-  private final CompanyMembershipService companyMembershipService;
   private final AuthRateLimitService rateLimitService;
 
   public LoginResult register(UserCreateRequest request, SessionRequestMetadata metadata) {
@@ -69,7 +65,7 @@ public class AuthService {
     String accessToken =
         jwtService.createAccessToken(
             user.getId().toString(), Map.of("sid", session.getAccessKey()));
-    return new LoginResult(createLoginResponse(user), accessToken, nextRefreshToken);
+    return new LoginResult(userService.toLoginResponse(user), accessToken, nextRefreshToken);
   }
 
   public void logout(String refreshToken) {
@@ -83,22 +79,7 @@ public class AuthService {
 
     String accessToken =
         jwtService.createAccessToken(subject, Map.of("sid", session.getAccessKey()));
-    return new LoginResult(createLoginResponse(user), accessToken, refreshToken);
-  }
-
-  private LoginResponse createLoginResponse(User user) {
-    boolean hasCompany = companyMembershipService.hasActiveMembership(user);
-    return new LoginResponse(
-        user.getName(),
-        user.getEmail(),
-        user.getPhone(),
-        hasCompany,
-        user.getStatus(),
-        user.getPlatformRoles().stream()
-            .filter(role -> role.isActive())
-            .map(role -> role.getName())
-            .collect(Collectors.toSet()),
-        user.isPasswordChangeRequired());
+    return new LoginResult(userService.toLoginResponse(user), accessToken, refreshToken);
   }
 
   private void requireEnabled(User user) {
