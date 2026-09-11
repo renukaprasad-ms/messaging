@@ -1,92 +1,51 @@
 package com.messaging.user.entity;
 
-import com.messaging.platformrole.entity.PlatformRole;
-import jakarta.persistence.*;
-import java.time.Instant;
-import java.util.HashSet;
-import java.util.Set;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import java.util.UUID;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(
     name = "users",
-    indexes = {
-      @Index(name = "idx_user_email", columnList = "email"),
-      @Index(name = "idx_user_status", columnList = "status")
-    },
-    uniqueConstraints = {@UniqueConstraint(name = "uk_user_email", columnNames = "email")})
+    uniqueConstraints = {
+      @UniqueConstraint(name = "uk_users_email", columnNames = "email"),
+      @UniqueConstraint(name = "uk_users_username", columnNames = "username")
+    })
 public class User {
 
-  @Setter
-  @Column(name = "password_change_required", nullable = false)
-  private boolean passwordChangeRequired;
-
-  @Setter
-  @Enumerated(EnumType.STRING)
-  @Column(name = "account_type", nullable = false, length = 30)
-  private AccountType accountType = AccountType.INDIVIDUAL;
-
-  @ManyToMany(fetch = FetchType.EAGER)
-  @JoinTable(
-      name = "user_platform_roles",
-      joinColumns = @JoinColumn(name = "user_id"),
-      inverseJoinColumns = @JoinColumn(name = "platform_role_id"))
-  private Set<PlatformRole> platformRoles = new HashSet<>();
-
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
-  @Setter
-  @Column(name = "name", nullable = false, length = 150)
-  private String name;
-
-  @Setter
-  @Column(name = "email", nullable = false, length = 320)
+  @Column(nullable = false, unique = true)
   private String email;
 
-  @Setter
-  @Column(name = "password", nullable = false)
+  @Column(nullable = false)
+  private String name;
+
+  @Column(name = "is_verified", nullable = false)
+  private boolean verified;
+
+  @Column(name = "profile_picture")
+  private String profilePicture;
+
+  @Column(nullable = false, unique = true)
+  private String username;
+
+  @Column(nullable = false)
   private String password;
 
-  @Setter
-  @Column(name = "phone", length = 30)
-  private String phone;
-
-  @Setter
-  @Column(name = "profile_photo_url", length = 1000)
-  private String profilePhotoUrl;
-
-  @Setter
-  @Enumerated(EnumType.STRING)
-  @Column(name = "status", nullable = false, length = 30)
-  private UserStatus status = UserStatus.PENDING_VERIFICATION;
-
-  @Setter
-  @Column(name = "email_verified", nullable = false)
-  private boolean emailVerified = false;
-
-  @Setter
-  @Column(name = "phone_verified", nullable = false)
-  private boolean phoneVerified = false;
-
-  @Column(name = "created_at", nullable = false, updatable = false)
-  private Instant createdAt;
-
-  @Column(name = "updated_at", nullable = false)
-  private Instant updatedAt;
-
-  @PrePersist
-  protected void onCreate() {
-    Instant now = Instant.now();
-    createdAt = now;
-    updatedAt = now;
-  }
-
-  @PreUpdate
-  protected void onUpdate() {
-    updatedAt = Instant.now();
-  }
+  @Column(name = "two_factor_enabled", nullable = false)
+  private boolean twoFactorEnabled;
 }

@@ -4,12 +4,9 @@ import com.messaging.common.response.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -53,20 +50,6 @@ public class GlobalExceptionHandler {
         .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), message));
   }
 
-  @ExceptionHandler(AuthenticationException.class)
-  public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(
-      AuthenticationException exception) {
-    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-        .body(ApiResponse.error(HttpStatus.UNAUTHORIZED.value(), "Authentication failed"));
-  }
-
-  @ExceptionHandler(AccessDeniedException.class)
-  public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(
-      AccessDeniedException exception) {
-    return ResponseEntity.status(HttpStatus.FORBIDDEN)
-        .body(ApiResponse.error(HttpStatus.FORBIDDEN.value(), "Access denied"));
-  }
-
   @ExceptionHandler(NoResourceFoundException.class)
   public ResponseEntity<ApiResponse<Void>> handleNoResourceFound(
       NoResourceFoundException exception) {
@@ -84,11 +67,5 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(HttpMessageNotReadableException.class)
   public ResponseEntity<ApiResponse<Void>> handleUnreadableRequest() {
     return ResponseEntity.badRequest().body(ApiResponse.error(400, "Invalid request body"));
-  }
-
-  @ExceptionHandler(DataIntegrityViolationException.class)
-  public ResponseEntity<ApiResponse<Void>> handleConflict() {
-    return ResponseEntity.status(HttpStatus.CONFLICT)
-        .body(ApiResponse.error(409, "The request conflicts with an existing record"));
   }
 }

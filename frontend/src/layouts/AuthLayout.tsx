@@ -1,8 +1,5 @@
-import { Navigate, Outlet } from 'react-router'
-import { useSelector } from 'react-redux'
+import { Outlet } from 'react-router'
 import { FiBarChart2, FiLayers, FiMessageCircle, FiShield, FiZap } from 'react-icons/fi'
-import { homePath } from '../auth/access'
-import type { RootState } from '../store/store'
 
 const capabilities = [
   {
@@ -28,9 +25,6 @@ const capabilities = [
 ]
 
 const AuthLayout = () => {
-  const user = useSelector((state: RootState) => state.auth.user)
-  if (user) return <Navigate to={homePath(user)} replace />
-
   return (
     <main className="h-dvh overflow-hidden bg-white lg:grid lg:grid-cols-[48%_52%]">
       <section className="relative hidden h-dvh overflow-hidden border-r border-slate-100 bg-[linear-gradient(105deg,#F0F1FF_0%,#FFFFFF_100%)] px-10 py-8 lg:flex lg:flex-col xl:px-12">
