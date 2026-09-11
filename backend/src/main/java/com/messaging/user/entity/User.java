@@ -28,22 +28,22 @@ public class User {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @Column(nullable = false, unique = true)
+  @Column(nullable = false, unique = true, length = 320)
   private String email;
 
-  @Column(nullable = false)
+  @Column(nullable = false, length = 120)
   private String name;
 
   @Column(name = "is_verified", nullable = false)
   private boolean verified;
 
-  @Column(name = "profile_picture")
+  @Column(name = "profile_picture", length = 512)
   private String profilePicture;
 
-  @Column(nullable = false, unique = true)
+  @Column(nullable = false, unique = true, length = 50)
   private String username;
 
-  @Column(nullable = false)
+  @Column(nullable = false, length = 255)
   private String password;
 
   @Column(name = "two_factor_enabled", nullable = false)

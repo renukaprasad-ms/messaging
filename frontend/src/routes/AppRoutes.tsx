@@ -1,6 +1,9 @@
 import { Navigate, Route, Routes } from 'react-router'
 import AuthLayout from '../layouts/AuthLayout'
 import MainLayout from '../layouts/MainLayout'
+import Login from '../pages/auth/Login'
+import Register from '../pages/auth/Register'
+import VerifyOtp from '../pages/auth/VerifyOtp'
 
 const AppRoutes = () => {
   return (
@@ -19,17 +22,11 @@ const AppRoutes = () => {
         />
       </Route>
       <Route element={<AuthLayout />}>
-        <Route
-          path="/auth"
-          element={
-            <div className="panel p-6">
-              <p className="eyebrow">Auth</p>
-              <h1 className="mt-2 text-xl font-bold text-slate-950">Auth layout ready.</h1>
-            </div>
-          }
-        />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/verifyotp" element={<VerifyOtp />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   )
 }
