@@ -1,12 +1,20 @@
 package com.messaging.user.service;
 
 import com.messaging.common.exception.ConflictException;
+import com.messaging.common.exception.NotFoundException;
+import com.messaging.media.dto.ProfilePictureResponse;
+import com.messaging.media.entity.Media;
+import com.messaging.media.enums.MediaPurpose;
+import com.messaging.media.exception.MediaException;
+import com.messaging.media.service.CurrentUserService;
+import com.messaging.media.service.MediaService;
 import com.messaging.user.dto.CreateUserRequest;
 import com.messaging.user.entity.User;
 import com.messaging.user.repository.UserRepository;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +25,8 @@ public class UserService {
 
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
+  private final CurrentUserService currentUserService;
+  private final MediaService mediaService;
 
   @Transactional
   public User createUser(CreateUserRequest request) {
@@ -37,7 +47,6 @@ public class UserService {
     user.setEmail(email);
     user.setName(request.name().trim());
     user.setVerified(false);
-    user.setProfilePicture(normalizeOptional(request.profilePicture()));
     user.setUsername(username);
     user.setPassword(passwordEncoder.encode(request.password()));
     user.setTwoFactorEnabled(request.twoFactorEnabled());
@@ -49,18 +58,54 @@ public class UserService {
     }
   }
 
+  @Transactional(readOnly = true)
+  public User getUser(long userId) {
+    return userRepository
+        .findById(userId)
+        .orElseThrow(() -> new NotFoundException("User not found"));
+  }
+
+  @Transactional
+  public User verifyEmail(long userId) {
+    User user = getUser(userId);
+    user.setVerified(true);
+    return user;
+  }
+
+  @Transactional
+  public ProfilePictureResponse attachCurrentUserProfilePicture(String mediaId) {
+    long userId = currentUserService.currentUserId();
+    long parsedMediaId = parseMediaId(mediaId);
+    User user =
+        userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
+    Media media = mediaService.getActiveOwnedMedia(parsedMediaId, userId);
+    if (media.getPurpose() != MediaPurpose.USER_PROFILE) {
+      throw new MediaException(HttpStatus.BAD_REQUEST, "MEDIA_INVALID_PURPOSE");
+    }
+    user.setProfilePicture(media);
+    return new ProfilePictureResponse(user.getId().toString(), media.getId().toString());
+  }
+
   private String normalizeEmail(String email) {
     return email.trim().toLowerCase(Locale.ROOT);
+  }
+
+  @Transactional(readOnly = true)
+  public User getByEmail(String email) {
+    return userRepository
+        .findByEmail(normalizeEmail(email))
+        .orElseThrow(() -> new NotFoundException("User not found"));
   }
 
   private String normalizeUsername(String username) {
     return username.trim().toLowerCase(Locale.ROOT);
   }
 
-  private String normalizeOptional(String value) {
-    if (value == null || value.isBlank()) {
-      return null;
+  private long parseMediaId(String mediaId) {
+    try {
+      return Long.parseLong(mediaId);
+    } catch (NumberFormatException exception) {
+      throw new MediaException(HttpStatus.BAD_REQUEST, "MEDIA_INVALID_ID");
     }
-    return value.trim();
   }
 }

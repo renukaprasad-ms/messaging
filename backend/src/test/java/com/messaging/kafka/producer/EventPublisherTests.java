@@ -31,7 +31,8 @@ class EventPublisherTests {
                 "corr",
                 null,
                 MessagePriority.CRITICAL),
-            new OtpRequestedEvent("user@example.com", "EMAIL"));
+            new OtpRequestedEvent(
+                "user@example.com", "EMAIL", "Verify your email", "Your code is 123456", false));
     when(kafkaTemplate.send("messaging.jobs.critical", "1:user:2", event))
         .thenReturn(new CompletableFuture<>());
 

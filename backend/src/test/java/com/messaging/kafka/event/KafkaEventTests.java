@@ -20,7 +20,10 @@ class KafkaEventTests {
             MessagePriority.CRITICAL);
 
     KafkaEvent<OtpRequestedEvent> event =
-        KafkaEvent.of(metadata, new OtpRequestedEvent("user@example.com", "EMAIL"));
+        KafkaEvent.of(
+            metadata,
+            new OtpRequestedEvent(
+                "user@example.com", "EMAIL", "Verify your email", "Your code is 123456", false));
 
     assertThat(event.eventId()).isNotBlank();
     assertThat(event.eventType()).isEqualTo("auth.otp.requested");
@@ -28,6 +31,9 @@ class KafkaEventTests {
     assertThat(event.occurredAt()).isNotNull();
     assertThat(event.priority()).isEqualTo(MessagePriority.CRITICAL);
     assertThat(event.correlationId()).isNotBlank();
-    assertThat(event.payload()).isEqualTo(new OtpRequestedEvent("user@example.com", "EMAIL"));
+    assertThat(event.payload())
+        .isEqualTo(
+            new OtpRequestedEvent(
+                "user@example.com", "EMAIL", "Verify your email", "Your code is 123456", false));
   }
 }

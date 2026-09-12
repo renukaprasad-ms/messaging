@@ -1,9 +1,13 @@
 package com.messaging.user.entity;
 
 import com.messaging.common.id.IdGenerator;
+import com.messaging.media.entity.Media;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -23,8 +27,7 @@ import lombok.Setter;
     })
 public class User {
 
-  @Id
-  private Long id;
+  @Id private Long id;
 
   @Column(nullable = false, unique = true, length = 320)
   private String email;
@@ -35,8 +38,9 @@ public class User {
   @Column(name = "is_verified", nullable = false)
   private boolean verified;
 
-  @Column(name = "profile_picture", length = 512)
-  private String profilePicture;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "profile_picture_media_id")
+  private Media profilePicture;
 
   @Column(nullable = false, unique = true, length = 50)
   private String username;

@@ -2,8 +2,10 @@ package com.messaging.auth.service;
 
 import com.messaging.security.jwt.JwtService;
 import com.messaging.security.jwt.TokenPair;
+import io.jsonwebtoken.Claims;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,10 @@ public class AuthTokenService {
 
   public Instant refreshTokenExpiresAt(String refreshToken) {
     return jwtService.expiresAt(refreshToken);
+  }
+
+  public Optional<Claims> parseRefreshToken(String refreshToken) {
+    return jwtService.parseRefreshToken(refreshToken);
   }
 
   public void clearTokenCookies(HttpHeaders headers) {

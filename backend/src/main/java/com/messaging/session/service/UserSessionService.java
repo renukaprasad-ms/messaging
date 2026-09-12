@@ -4,6 +4,7 @@ import com.messaging.session.dto.CreateOrUpdateSessionRequest;
 import com.messaging.session.entity.UserSession;
 import com.messaging.session.repository.UserSessionRepository;
 import java.time.Instant;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,5 +39,21 @@ public class UserSessionService {
     session.setRevokedAt(null);
 
     return userSessionRepository.save(session);
+  }
+
+  @Transactional(readOnly = true)
+  public Optional<UserSession> findActiveByRefreshTokenId(String refreshTokenId) {
+    return userSessionRepository.findByRefreshTokenId(refreshTokenId).filter(UserSession::isActive);
+  }
+
+  @Transactional
+  public void revoke(String refreshTokenId) {
+    userSessionRepository
+        .findByRefreshTokenId(refreshTokenId)
+        .ifPresent(
+            session -> {
+              session.setRevokedAt(Instant.now());
+              userSessionRepository.save(session);
+            });
   }
 }

@@ -26,10 +26,14 @@ public class SecurityConfig {
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
-        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/api/auth/register").permitAll().anyRequest().authenticated())
+                auth.requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/refresh")
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated())
         .exceptionHandling(
             exception ->
                 exception.authenticationEntryPoint(

@@ -91,11 +91,15 @@ app:
       public-key: ${JWT_PUBLIC_KEY:}
       access-expiration: ${JWT_ACCESS_EXPIRATION:15m}
       refresh-expiration: ${JWT_REFRESH_EXPIRATION:7d}
+      untrusted-refresh-expiration: ${JWT_UNTRUSTED_REFRESH_EXPIRATION:1d}
+      pre-auth-expiration: ${JWT_PRE_AUTH_EXPIRATION:10m}
     cookie:
       access-name: ${JWT_ACCESS_COOKIE_NAME:msid}
       refresh-name: ${JWT_REFRESH_COOKIE_NAME:msid_r}
+      pre-auth-name: ${JWT_PRE_AUTH_COOKIE_NAME:msid_pre}
       access-max-age: ${JWT_ACCESS_COOKIE_MAX_AGE:15m}
       refresh-max-age: ${JWT_REFRESH_COOKIE_MAX_AGE:7d}
+      pre-auth-max-age: ${JWT_PRE_AUTH_COOKIE_MAX_AGE:10m}
       path: ${JWT_COOKIE_PATH:/}
       domain: ${JWT_COOKIE_DOMAIN:}
       http-only: ${JWT_COOKIE_HTTP_ONLY:true}
@@ -115,6 +119,23 @@ app:
     async: ${APP_NOTIFICATION_ASYNC:true}
     email:
       from: ${SMTP_FROM:${SMTP_USERNAME:}}
+  media:
+    storage:
+      default-provider: ${MEDIA_STORAGE_DEFAULT_PROVIDER}
+      upload-url-expiry: ${MEDIA_UPLOAD_URL_EXPIRY}
+      download-url-expiry: ${MEDIA_DOWNLOAD_URL_EXPIRY}
+      supabase:
+        base-url: ${SUPABASE_URL}
+        service-role-key: ${SUPABASE_SERVICE_ROLE_KEY}
+        bucket: ${SUPABASE_MEDIA_BUCKET}
+    validation:
+      image-max-size: ${MEDIA_IMAGE_MAX_SIZE}
+      document-max-size: ${MEDIA_DOCUMENT_MAX_SIZE}
+      video-max-size: ${MEDIA_VIDEO_MAX_SIZE}
+      audio-max-size: ${MEDIA_AUDIO_MAX_SIZE}
+      other-max-size: ${MEDIA_OTHER_MAX_SIZE}
+      pending-ttl: ${MEDIA_PENDING_TTL}
+      allowed-mime-types: ${MEDIA_ALLOWED_MIME_TYPES}
   kafka:
     security:
       protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}

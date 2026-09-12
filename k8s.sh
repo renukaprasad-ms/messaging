@@ -49,7 +49,7 @@ build_and_load_images() {
   docker build -t "${BACKEND_IMAGE}" "${ROOT_DIR}/backend"
   docker build \
     -t "${FRONTEND_IMAGE}" \
-    --build-arg VITE_API_BASE_URL="${VITE_API_BASE_URL:-http://localhost:8001}" \
+    --build-arg VITE_API_BASE_URL="${K8S_VITE_API_BASE_URL:-}" \
     "${ROOT_DIR}/frontend"
 
   docker save "${BACKEND_IMAGE}" -o /tmp/messaging-backend.tar

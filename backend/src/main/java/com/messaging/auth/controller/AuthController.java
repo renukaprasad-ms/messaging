@@ -1,7 +1,9 @@
 package com.messaging.auth.controller;
 
+import com.messaging.auth.dto.AuthUserResponse;
+import com.messaging.auth.dto.LoginRequest;
 import com.messaging.auth.dto.RegisterRequest;
-import com.messaging.auth.dto.RegisterResponse;
+import com.messaging.auth.dto.VerifyEmailRequest;
 import com.messaging.auth.service.AuthService;
 import com.messaging.common.response.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,13 +25,49 @@ public class AuthController {
   private final AuthService authService;
 
   @PostMapping("/register")
-  public ResponseEntity<ApiResponse<RegisterResponse>> register(
+  public ResponseEntity<ApiResponse<AuthUserResponse>> register(
       @Valid @RequestBody RegisterRequest request, HttpServletRequest servletRequest) {
     HttpHeaders headers = new HttpHeaders();
-    RegisterResponse response = authService.register(request, servletRequest, headers);
+    AuthUserResponse response = authService.register(request, servletRequest, headers);
 
     return ResponseEntity.status(HttpStatus.CREATED)
         .headers(headers)
         .body(ApiResponse.success(HttpStatus.CREATED.value(), response, "Register successful"));
+  }
+
+  @PostMapping("/login")
+  public ResponseEntity<ApiResponse<AuthUserResponse>> login(
+      @Valid @RequestBody LoginRequest request, HttpServletRequest servletRequest) {
+    HttpHeaders headers = new HttpHeaders();
+    AuthUserResponse response = authService.login(request, servletRequest, headers);
+    return ResponseEntity.ok()
+        .headers(headers)
+        .body(ApiResponse.success(HttpStatus.OK.value(), response, "Login successful"));
+  }
+
+  @PostMapping("/refresh")
+  public ResponseEntity<ApiResponse<AuthUserResponse>> refresh(HttpServletRequest servletRequest) {
+    HttpHeaders headers = new HttpHeaders();
+    AuthUserResponse response = authService.refresh(servletRequest, headers);
+    return ResponseEntity.ok()
+        .headers(headers)
+        .body(ApiResponse.success(HttpStatus.OK.value(), response, "Session refreshed"));
+  }
+
+  @PostMapping("/verify-email")
+  public ResponseEntity<ApiResponse<AuthUserResponse>> verifyEmail(
+      @Valid @RequestBody VerifyEmailRequest request) {
+    AuthUserResponse response = authService.verifyEmail(request);
+    return ResponseEntity.ok(
+        ApiResponse.success(HttpStatus.OK.value(), response, "Email verified"));
+  }
+
+  @PostMapping("/logout")
+  public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest servletRequest) {
+    HttpHeaders headers = new HttpHeaders();
+    authService.logout(servletRequest, headers);
+    return ResponseEntity.ok()
+        .headers(headers)
+        .body(ApiResponse.success(HttpStatus.OK.value(), "Logout successful"));
   }
 }
