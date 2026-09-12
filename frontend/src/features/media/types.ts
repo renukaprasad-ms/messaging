@@ -2,6 +2,7 @@ export type MediaPurpose = 'USER_PROFILE'
 
 export type InitiateMediaUploadResponse = {
   mediaId: string
+  uploadToken?: string | null
   uploadUrl: string
   expiresAt: string
   requiredHeaders: Record<string, string>

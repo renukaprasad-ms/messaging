@@ -2,11 +2,13 @@ package com.messaging.media.service;
 
 import com.messaging.common.id.IdGenerator;
 import com.messaging.media.config.MediaStorageProperties;
+import com.messaging.media.config.MediaValidationProperties;
 import com.messaging.media.dto.InitiateMediaUploadRequest;
 import com.messaging.media.dto.InitiateMediaUploadResponse;
 import com.messaging.media.dto.MediaAccessResponse;
 import com.messaging.media.dto.MediaResponse;
 import com.messaging.media.entity.Media;
+import com.messaging.media.enums.MediaPurpose;
 import com.messaging.media.enums.MediaStatus;
 import com.messaging.media.exception.MediaException;
 import com.messaging.media.mapper.MediaMapper;
@@ -17,7 +19,14 @@ import com.messaging.media.provider.StorageObjectMetadata;
 import com.messaging.media.provider.StorageProvider;
 import com.messaging.media.provider.StorageProviderResolver;
 import com.messaging.media.repository.MediaRepository;
+import com.messaging.redis.key.RedisKey;
+import com.messaging.redis.service.RedisService;
+import com.messaging.security.service.CurrentUserService;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MediaService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MediaService.class);
+  private static final long PRE_REGISTER_OWNER_ID = 0L;
 
   private final MediaRepository mediaRepository;
   private final CurrentUserService currentUserService;
@@ -37,16 +47,26 @@ public class MediaService {
   private final MediaObjectKeyFactory objectKeyFactory;
   private final StorageProviderResolver storageProviderResolver;
   private final MediaStorageProperties storageProperties;
+  private final MediaValidationProperties validationProperties;
   private final MediaAuthorizationService authorizationService;
   private final MediaMapper mediaMapper;
+  private final RedisService redisService;
+  private final SecureRandom secureRandom = new SecureRandom();
 
   public InitiateMediaUploadResponse initiateUpload(InitiateMediaUploadRequest request) {
-    long userId = currentUserService.currentUserId();
     MediaValidationService.ValidatedMedia validated =
         validationService.validateForUpload(
             request.fileName(), request.contentType(), request.sizeBytes());
+    Long userId = currentUserService.currentUserIdOrEmpty().orElse(null);
+    boolean preRegisterUpload = userId == null;
+    if (preRegisterUpload && request.purpose() != MediaPurpose.USER_PROFILE) {
+      throw new MediaException(HttpStatus.BAD_REQUEST, "MEDIA_INVALID_PURPOSE");
+    }
 
-    Media media = createPendingMedia(userId, request, validated);
+    Media media =
+        preRegisterUpload
+            ? createPreRegisterPendingMedia(request, validated)
+            : createPendingMedia(userId, request, validated);
     StorageProvider provider = storageProviderResolver.resolve(media.getStorageProvider());
     SignedUploadResult signedUpload =
         provider.createSignedUpload(
@@ -56,6 +76,13 @@ public class MediaService {
                 media.getContentType(),
                 media.getSizeBytes(),
                 storageProperties.getUploadUrlExpiry()));
+    String uploadToken = preRegisterUpload ? secureToken() : null;
+    if (uploadToken != null) {
+      redisService.set(
+          RedisKey.preRegisterMedia(media.getId().toString()),
+          uploadToken,
+          validationProperties.getPendingTtl());
+    }
 
     LOGGER.info(
         "Media upload initiated mediaId={} userId={} provider={} purpose={} status={}",
@@ -67,6 +94,7 @@ public class MediaService {
 
     return new InitiateMediaUploadResponse(
         media.getId().toString(),
+        uploadToken,
         signedUpload.uploadUrl(),
         signedUpload.expiresAt(),
         signedUpload.requiredHeaders());
@@ -83,9 +111,26 @@ public class MediaService {
     media.setOwnerUserId(userId);
     media.setStorageProvider(storageProperties.getDefaultProvider());
     media.setBucket(storageProperties.getSupabase().getBucket());
-    media.setObjectKey(
-        objectKeyFactory.createUserObjectKey(
-            userId, request.purpose(), mediaId, validated.extension()));
+    media.setObjectKey(objectKeyFactory.createTemporaryObjectKey(userId, mediaId, validated.extension()));
+    media.setOriginalFileName(validated.fileName());
+    media.setContentType(validated.contentType());
+    media.setSizeBytes(validated.sizeBytes());
+    media.setMediaType(validated.mediaType());
+    media.setPurpose(request.purpose());
+    media.setStatus(MediaStatus.PENDING);
+    return mediaRepository.saveAndFlush(media);
+  }
+
+  @Transactional
+  protected Media createPreRegisterPendingMedia(
+      InitiateMediaUploadRequest request, MediaValidationService.ValidatedMedia validated) {
+    long mediaId = IdGenerator.nextId();
+    Media media = new Media();
+    media.setId(mediaId);
+    media.setOwnerUserId(PRE_REGISTER_OWNER_ID);
+    media.setStorageProvider(storageProperties.getDefaultProvider());
+    media.setBucket(storageProperties.getSupabase().getBucket());
+    media.setObjectKey(objectKeyFactory.createPreRegisterObjectKey(mediaId, validated.extension()));
     media.setOriginalFileName(validated.fileName());
     media.setContentType(validated.contentType());
     media.setSizeBytes(validated.sizeBytes());
@@ -105,6 +150,35 @@ public class MediaService {
       throw new MediaException(HttpStatus.CONFLICT, "MEDIA_INVALID_STATE");
     }
 
+    return mediaMapper.toResponse(completePendingMedia(media, userId));
+  }
+
+  public Media completePreRegisterProfilePictureUpload(
+      String mediaId, String uploadToken, long userId) {
+    long parsedMediaId = parseMediaId(mediaId);
+    String redisKey = RedisKey.preRegisterMedia(mediaId);
+    String storedToken = redisService.get(redisKey, String.class);
+    if (!tokenMatches(storedToken, uploadToken)) {
+      throw new MediaException(HttpStatus.BAD_REQUEST, "MEDIA_UPLOAD_TOKEN_INVALID");
+    }
+    Media media =
+        mediaRepository
+            .findById(parsedMediaId)
+            .orElseThrow(() -> new MediaException(HttpStatus.NOT_FOUND, "MEDIA_NOT_FOUND"));
+    if (media.getStatus() != MediaStatus.PENDING) {
+      throw new MediaException(HttpStatus.CONFLICT, "MEDIA_INVALID_STATE");
+    }
+    if (media.getOwnerUserId() != PRE_REGISTER_OWNER_ID
+        || media.getPurpose() != MediaPurpose.USER_PROFILE) {
+      throw new MediaException(HttpStatus.BAD_REQUEST, "MEDIA_UPLOAD_TOKEN_INVALID");
+    }
+
+    Media completed = completePendingMedia(media, userId);
+    redisService.delete(redisKey);
+    return completed;
+  }
+
+  private Media completePendingMedia(Media media, long ownerUserId) {
     StorageProvider provider = storageProviderResolver.resolve(media.getStorageProvider());
     StorageObjectMetadata metadata =
         provider.getObjectMetadata(media.getBucket(), media.getObjectKey());
@@ -123,7 +197,11 @@ public class MediaService {
       throw exception;
     }
 
-    return mediaMapper.toResponse(markActive(media.getId(), metadata.checksum()));
+    String finalObjectKey = finalObjectKey(media, ownerUserId);
+    if (!media.getObjectKey().equals(finalObjectKey)) {
+      provider.move(media.getBucket(), media.getObjectKey(), finalObjectKey);
+    }
+    return markActive(media.getId(), ownerUserId, finalObjectKey, metadata.checksum());
   }
 
   public MediaAccessResponse createAccessUrl(String mediaId) {
@@ -187,7 +265,7 @@ public class MediaService {
   }
 
   @Transactional
-  protected Media markActive(long mediaId, String checksum) {
+  protected Media markActive(long mediaId, Long ownerUserId, String objectKey, String checksum) {
     Media media =
         mediaRepository
             .findById(mediaId)
@@ -197,6 +275,12 @@ public class MediaService {
     }
     if (media.getStatus() != MediaStatus.PENDING) {
       throw new MediaException(HttpStatus.CONFLICT, "MEDIA_INVALID_STATE");
+    }
+    if (objectKey != null) {
+      media.setObjectKey(objectKey);
+    }
+    if (ownerUserId != null) {
+      media.setOwnerUserId(ownerUserId);
     }
     media.setStatus(MediaStatus.ACTIVE);
     media.setCompletedAt(Instant.now());
@@ -225,6 +309,33 @@ public class MediaService {
     media.setStatus(MediaStatus.DELETED);
     media.setDeletedAt(Instant.now());
     return mediaRepository.saveAndFlush(media);
+  }
+
+  private String finalObjectKey(Media media, long ownerUserId) {
+    return objectKeyFactory.createUserObjectKey(
+        ownerUserId, media.getPurpose(), media.getId(), extension(media.getObjectKey()));
+  }
+
+  private String secureToken() {
+    byte[] bytes = new byte[32];
+    secureRandom.nextBytes(bytes);
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+  }
+
+  private boolean tokenMatches(String expected, String actual) {
+    if (expected == null || actual == null) {
+      return false;
+    }
+    return MessageDigest.isEqual(
+        expected.getBytes(StandardCharsets.UTF_8), actual.getBytes(StandardCharsets.UTF_8));
+  }
+
+  private String extension(String objectKey) {
+    int dotIndex = objectKey.lastIndexOf('.');
+    if (dotIndex < 0 || dotIndex == objectKey.length() - 1) {
+      throw new MediaException(HttpStatus.BAD_REQUEST, "MEDIA_INVALID_EXTENSION");
+    }
+    return objectKey.substring(dotIndex + 1);
   }
 
   private long parseMediaId(String mediaId) {

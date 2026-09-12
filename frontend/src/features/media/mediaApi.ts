@@ -1,7 +1,7 @@
 import axios from 'axios'
-import apiClient from '../../lib/api/apiClient'
+import apiClient, { type ApiRequestConfig } from '../../lib/api/apiClient'
 import type { ApiResponse } from '../../lib/api/types'
-import type { InitiateMediaUploadResponse, MediaPurpose, MediaResponse } from './types'
+import type { InitiateMediaUploadResponse, MediaPurpose } from './types'
 
 const unwrap = <T>(response: ApiResponse<T>) => {
   if (!response.data) {
@@ -11,7 +11,8 @@ const unwrap = <T>(response: ApiResponse<T>) => {
 }
 
 export const mediaApi = {
-  async uploadProfilePicture(file: File) {
+  async initiateProfilePictureUpload(file: File) {
+    const skipAuthRefreshConfig: ApiRequestConfig = { _skipAuthRefresh: true }
     const initiate = await apiClient.post<ApiResponse<InitiateMediaUploadResponse>>(
       '/api/v1/media/uploads',
       {
@@ -20,20 +21,25 @@ export const mediaApi = {
         sizeBytes: file.size,
         purpose: 'USER_PROFILE' satisfies MediaPurpose,
       },
+      skipAuthRefreshConfig,
     )
-    const upload = unwrap(initiate.data)
+    return unwrap(initiate.data)
+  },
 
+  async uploadFileToStorage(
+    upload: InitiateMediaUploadResponse,
+    file: File,
+    onProgress?: (progress: number) => void,
+  ) {
     await axios.put(upload.uploadUrl, file, {
       headers: upload.requiredHeaders,
+      onUploadProgress: (event) => {
+        if (!event.total) {
+          return
+        }
+        onProgress?.(Math.round((event.loaded / event.total) * 100))
+      },
     })
-
-    const complete = await apiClient.post<ApiResponse<MediaResponse>>(
-      `/api/v1/media/${upload.mediaId}/complete`,
-    )
-    const completed = unwrap(complete.data)
-    await apiClient.put<ApiResponse<{ userId: string; mediaId: string }>>(
-      `/api/v1/users/me/profile-picture/${completed.mediaId}`,
-    )
-    return completed
   },
+
 }

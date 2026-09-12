@@ -43,14 +43,30 @@ public class MediaValidationService {
       long expectedSizeBytes,
       String actualContentType,
       Long actualSizeBytes) {
-    String normalizedActualType = normalizeContentType(actualContentType);
-    if (!expectedContentType.equals(normalizedActualType)) {
+    if (!isCompatibleUploadedContentType(expectedContentType, actualContentType)) {
       throw new MediaException(HttpStatus.BAD_REQUEST, "MEDIA_INVALID_TYPE");
     }
     if (actualSizeBytes == null || actualSizeBytes.longValue() != expectedSizeBytes) {
       throw new MediaException(HttpStatus.BAD_REQUEST, "MEDIA_INVALID_SIZE");
     }
     validateSize(mediaType(expectedContentType), actualSizeBytes);
+  }
+
+  private boolean isCompatibleUploadedContentType(
+      String expectedContentType, String actualContentType) {
+    if (!StringUtils.hasText(actualContentType)) {
+      return true;
+    }
+    String normalized = actualContentType.trim().toLowerCase(Locale.ROOT);
+    int parameters = normalized.indexOf(';');
+    if (parameters >= 0) {
+      normalized = normalized.substring(0, parameters).trim();
+    }
+    if (normalized.equals("application/octet-stream") || normalized.equals("binary/octet-stream")) {
+      return true;
+    }
+    String normalizedActualType = normalizeContentType(normalized);
+    return expectedContentType.equals(normalizedActualType);
   }
 
   public boolean isAllowedContentType(String contentType) {

@@ -129,6 +129,18 @@ class SupabaseStorageProviderTests {
   }
 
   @Test
+  void movesObject() {
+    server
+        .expect(once(), requestTo("https://project.supabase.co/storage/v1/object/move"))
+        .andExpect(method(HttpMethod.POST))
+        .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+
+    provider.move("private-media", "tmp/uploads/1/2.jpg", "users/1/profile/2.jpg");
+
+    server.verify();
+  }
+
+  @Test
   void providerErrorsAreMapped() {
     server
         .expect(

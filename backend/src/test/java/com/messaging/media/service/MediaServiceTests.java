@@ -25,6 +25,8 @@ import com.messaging.media.provider.StorageObjectMetadata;
 import com.messaging.media.provider.StorageProvider;
 import com.messaging.media.provider.StorageProviderResolver;
 import com.messaging.media.repository.MediaRepository;
+import com.messaging.redis.service.RedisService;
+import com.messaging.security.service.CurrentUserService;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -44,6 +46,7 @@ class MediaServiceTests {
   @Mock private MediaRepository mediaRepository;
   @Mock private CurrentUserService currentUserService;
   @Mock private StorageProvider storageProvider;
+  @Mock private RedisService redisService;
 
   private MediaService service;
 
@@ -73,13 +76,15 @@ class MediaServiceTests {
             new MediaObjectKeyFactory(),
             new StorageProviderResolver(List.of(storageProvider)),
             storageProperties,
+            validationProperties,
             new MediaAuthorizationService(),
-            new MediaMapper());
+            new MediaMapper(),
+            redisService);
   }
 
   @Test
   void userCanInitiateUploadAndPendingMediaIsCreated() {
-    when(currentUserService.currentUserId()).thenReturn(10L);
+    when(currentUserService.currentUserIdOrEmpty()).thenReturn(Optional.of(10L));
     when(mediaRepository.saveAndFlush(any(Media.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
     when(storageProvider.createSignedUpload(any(SignedUploadRequest.class)))
@@ -98,13 +103,11 @@ class MediaServiceTests {
     assertThat(response.mediaId()).isEqualTo(media.getId().toString());
     assertThat(media.getStatus()).isEqualTo(MediaStatus.PENDING);
     assertThat(media.getOwnerUserId()).isEqualTo(10L);
-    assertThat(media.getObjectKey()).matches("users/10/profile/\\d+\\.jpg");
+    assertThat(media.getObjectKey()).matches("tmp/uploads/10/\\d+\\.jpg");
   }
 
   @Test
   void invalidMimeIsRejected() {
-    when(currentUserService.currentUserId()).thenReturn(10L);
-
     assertThatThrownBy(
             () ->
                 service.initiateUpload(
@@ -117,8 +120,6 @@ class MediaServiceTests {
 
   @Test
   void oversizedFileIsRejected() {
-    when(currentUserService.currentUserId()).thenReturn(10L);
-
     assertThatThrownBy(
             () ->
                 service.initiateUpload(
@@ -136,7 +137,7 @@ class MediaServiceTests {
     Media media = pendingMedia(100L, 10L);
     when(currentUserService.currentUserId()).thenReturn(10L);
     when(mediaRepository.findById(100L)).thenReturn(Optional.of(media));
-    when(storageProvider.getObjectMetadata("private-media", "users/10/profile/100.jpg"))
+    when(storageProvider.getObjectMetadata("private-media", "tmp/uploads/10/100.jpg"))
         .thenReturn(new StorageObjectMetadata(true, "image/jpeg", 100L, "etag"));
     when(mediaRepository.saveAndFlush(any(Media.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
@@ -145,6 +146,24 @@ class MediaServiceTests {
 
     assertThat(media.getCompletedAt()).isNotNull();
     assertThat(media.getChecksum()).isEqualTo("etag");
+    assertThat(media.getObjectKey()).isEqualTo("users/10/profile/100.jpg");
+    verify(storageProvider)
+        .move("private-media", "tmp/uploads/10/100.jpg", "users/10/profile/100.jpg");
+  }
+
+  @Test
+  void completeUploadAcceptsGenericStorageContentTypeWhenSizeMatches() {
+    Media media = pendingMedia(100L, 10L);
+    when(currentUserService.currentUserId()).thenReturn(10L);
+    when(mediaRepository.findById(100L)).thenReturn(Optional.of(media));
+    when(storageProvider.getObjectMetadata("private-media", "tmp/uploads/10/100.jpg"))
+        .thenReturn(new StorageObjectMetadata(true, "application/octet-stream", 100L, "etag"));
+    when(mediaRepository.saveAndFlush(any(Media.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    assertThat(service.completeUpload("100").status()).isEqualTo(MediaStatus.ACTIVE);
+
+    assertThat(media.getObjectKey()).isEqualTo("users/10/profile/100.jpg");
   }
 
   @Test
@@ -208,7 +227,7 @@ class MediaServiceTests {
     media.setOwnerUserId(ownerUserId);
     media.setStorageProvider(StorageProviderType.SUPABASE);
     media.setBucket("private-media");
-    media.setObjectKey("users/%d/profile/%d.jpg".formatted(ownerUserId, mediaId));
+    media.setObjectKey("tmp/uploads/%d/%d.jpg".formatted(ownerUserId, mediaId));
     media.setOriginalFileName("avatar.jpg");
     media.setContentType("image/jpeg");
     media.setSizeBytes(100L);
@@ -221,6 +240,7 @@ class MediaServiceTests {
 
   private Media activeMedia(long mediaId, long ownerUserId) {
     Media media = pendingMedia(mediaId, ownerUserId);
+    media.setObjectKey("users/%d/profile/%d.jpg".formatted(ownerUserId, mediaId));
     media.setStatus(MediaStatus.ACTIVE);
     media.setCompletedAt(Instant.now());
     return media;
@@ -237,8 +257,10 @@ class MediaServiceTests {
         MediaObjectKeyFactory objectKeyFactory,
         StorageProviderResolver storageProviderResolver,
         MediaStorageProperties storageProperties,
+        MediaValidationProperties validationProperties,
         MediaAuthorizationService authorizationService,
-        MediaMapper mediaMapper) {
+        MediaMapper mediaMapper,
+        RedisService redisService) {
       super(
           mediaRepository,
           currentUserService,
@@ -246,8 +268,10 @@ class MediaServiceTests {
           objectKeyFactory,
           storageProviderResolver,
           storageProperties,
+          validationProperties,
           authorizationService,
-          mediaMapper);
+          mediaMapper,
+          redisService);
       this.mediaRepository = mediaRepository;
     }
 
@@ -263,8 +287,7 @@ class MediaServiceTests {
       media.setBucket("private-media");
       media.setObjectKey(
           new MediaObjectKeyFactory()
-              .createUserObjectKey(
-                  userId, request.purpose(), media.getId(), validated.extension()));
+              .createTemporaryObjectKey(userId, media.getId(), validated.extension()));
       media.setOriginalFileName(validated.fileName());
       media.setContentType(validated.contentType());
       media.setSizeBytes(validated.sizeBytes());

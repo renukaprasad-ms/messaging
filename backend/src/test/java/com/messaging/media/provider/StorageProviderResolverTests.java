@@ -42,6 +42,11 @@ class StorageProviderResolverTests {
     }
 
     @Override
+    public void move(String bucket, String sourceObjectKey, String destinationObjectKey) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
     public SignedDownloadResult createSignedDownloadUrl(
         String bucket, String objectKey, Duration expiration) {
       throw new UnsupportedOperationException();

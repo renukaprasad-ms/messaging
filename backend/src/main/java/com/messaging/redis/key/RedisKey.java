@@ -20,6 +20,10 @@ public final class RedisKey {
     return join("auth", "login-attempts", normalize(userId));
   }
 
+  public static String preRegisterMedia(String mediaId) {
+    return join("auth", "pre-register-media", normalize(mediaId));
+  }
+
   public static String session(String sessionId) {
     return join("session", normalize(sessionId));
   }

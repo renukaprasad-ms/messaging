@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
@@ -47,6 +48,7 @@ public class SupabaseStorageProvider implements StorageProvider {
             "create signed upload");
     String signedUrl = firstText(body, "signedURL", "signedUrl", "url");
     if (!StringUtils.hasText(signedUrl)) {
+      LOGGER.warn("Supabase signed upload response did not include a URL");
       throw new MediaException(HttpStatus.SERVICE_UNAVAILABLE, "MEDIA_STORAGE_ERROR");
     }
     return new SignedUploadResult(
@@ -83,6 +85,20 @@ public class SupabaseStorageProvider implements StorageProvider {
   }
 
   @Override
+  public void move(String bucket, String sourceObjectKey, String destinationObjectKey) {
+    postJson(
+        storageUri("/object/move"),
+        Map.of(
+            "bucketId",
+            bucket,
+            "sourceKey",
+            sourceObjectKey,
+            "destinationKey",
+            destinationObjectKey),
+        "move");
+  }
+
+  @Override
   public SignedDownloadResult createSignedDownloadUrl(
       String bucket, String objectKey, Duration expiration) {
     Instant expiresAt = Instant.now().plus(expiration);
@@ -93,6 +109,7 @@ public class SupabaseStorageProvider implements StorageProvider {
             "create signed download");
     String signedUrl = firstText(body, "signedURL", "signedUrl", "url");
     if (!StringUtils.hasText(signedUrl)) {
+      LOGGER.warn("Supabase signed download response did not include a URL");
       throw new MediaException(HttpStatus.SERVICE_UNAVAILABLE, "MEDIA_STORAGE_ERROR");
     }
     return new SignedDownloadResult(absoluteStorageUrl(signedUrl), expiresAt);
@@ -146,6 +163,15 @@ public class SupabaseStorageProvider implements StorageProvider {
     return UriComponentsBuilder.fromUriString(cleanBase + "/storage/v1" + path).build(true).toUri();
   }
 
+  private URI storageUri(String path) {
+    String baseUrl = properties.getSupabase().getBaseUrl();
+    if (!StringUtils.hasText(baseUrl)) {
+      throw new MediaException(HttpStatus.SERVICE_UNAVAILABLE, "MEDIA_STORAGE_NOT_CONFIGURED");
+    }
+    String cleanBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+    return UriComponentsBuilder.fromUriString(cleanBase + "/storage/v1" + path).build(true).toUri();
+  }
+
   private String encodePathPreservingSlashes(String value) {
     String[] segments = value.split("/");
     StringBuilder encoded = new StringBuilder();
@@ -192,6 +218,12 @@ public class SupabaseStorageProvider implements StorageProvider {
   }
 
   private MediaException storageException(String operation, RestClientException exception) {
+    if (exception instanceof RestClientResponseException responseException) {
+      return storageException(
+          operation,
+          responseException.getStatusCode().value(),
+          responseException.getResponseBodyAsString());
+    }
     LOGGER.warn(
         "Supabase storage operation failed operation={} error={}",
         operation,
@@ -200,7 +232,28 @@ public class SupabaseStorageProvider implements StorageProvider {
   }
 
   private MediaException storageException(String operation, int status) {
-    LOGGER.warn("Supabase storage operation failed operation={} status={}", operation, status);
+    return storageException(operation, status, null);
+  }
+
+  private MediaException storageException(String operation, int status, String responseBody) {
+    String trimmedBody =
+        responseBody == null || responseBody.isBlank()
+            ? ""
+            : responseBody.substring(0, Math.min(responseBody.length(), 300));
+    LOGGER.warn(
+        "Supabase storage operation failed operation={} status={} response={}",
+        operation,
+        status,
+        trimmedBody);
+    if (status == HttpStatus.NOT_FOUND.value()) {
+      return new MediaException(HttpStatus.SERVICE_UNAVAILABLE, "MEDIA_BUCKET_NOT_FOUND");
+    }
+    if (status == HttpStatus.BAD_REQUEST.value()) {
+      return new MediaException(HttpStatus.SERVICE_UNAVAILABLE, "MEDIA_STORAGE_CONFIG_INVALID");
+    }
+    if (status == HttpStatus.UNAUTHORIZED.value() || status == HttpStatus.FORBIDDEN.value()) {
+      return new MediaException(HttpStatus.SERVICE_UNAVAILABLE, "MEDIA_STORAGE_AUTH_INVALID");
+    }
     return new MediaException(HttpStatus.SERVICE_UNAVAILABLE, "MEDIA_STORAGE_ERROR");
   }
 }

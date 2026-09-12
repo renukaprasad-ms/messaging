@@ -11,6 +11,8 @@ public interface StorageProvider {
 
   StorageObjectMetadata getObjectMetadata(String bucket, String objectKey);
 
+  void move(String bucket, String sourceObjectKey, String destinationObjectKey);
+
   SignedDownloadResult createSignedDownloadUrl(
       String bucket, String objectKey, Duration expiration);
 

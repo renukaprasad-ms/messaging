@@ -5,6 +5,8 @@ import com.messaging.auth.dto.LoginRequest;
 import com.messaging.auth.dto.RegisterRequest;
 import com.messaging.auth.dto.VerifyEmailRequest;
 import com.messaging.common.exception.UnauthorizedException;
+import com.messaging.media.entity.Media;
+import com.messaging.media.service.MediaService;
 import com.messaging.security.jwt.TokenPair;
 import com.messaging.session.dto.CreateOrUpdateSessionRequest;
 import com.messaging.session.entity.SessionPlatform;
@@ -35,6 +37,7 @@ public class AuthService {
   private final AuthCookieService authCookieService;
   private final AuthOtpService authOtpService;
   private final PasswordEncoder passwordEncoder;
+  private final MediaService mediaService;
 
   @Transactional
   public AuthUserResponse register(
@@ -44,15 +47,28 @@ public class AuthService {
             new CreateUserRequest(
                 request.email(),
                 request.name(),
-                request.profilePicture(),
                 request.username(),
                 request.password(),
                 false));
+    attachPreRegisterProfilePicture(user, request);
 
     issueSession(user, servletRequest, headers);
     authOtpService.issueEmailVerificationOtp(user.getEmail());
 
     return toResponse(user);
+  }
+
+  private void attachPreRegisterProfilePicture(User user, RegisterRequest request) {
+    if (request.profilePictureMediaId() == null
+        || request.profilePictureMediaId().isBlank()
+        || request.profilePictureUploadToken() == null
+        || request.profilePictureUploadToken().isBlank()) {
+      return;
+    }
+    Media media =
+        mediaService.completePreRegisterProfilePictureUpload(
+            request.profilePictureMediaId(), request.profilePictureUploadToken(), user.getId());
+    userService.attachUserProfilePicture(user.getId(), media);
   }
 
   @Transactional

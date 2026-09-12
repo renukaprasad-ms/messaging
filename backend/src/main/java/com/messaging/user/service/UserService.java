@@ -6,8 +6,8 @@ import com.messaging.media.dto.ProfilePictureResponse;
 import com.messaging.media.entity.Media;
 import com.messaging.media.enums.MediaPurpose;
 import com.messaging.media.exception.MediaException;
-import com.messaging.media.service.CurrentUserService;
 import com.messaging.media.service.MediaService;
+import com.messaging.security.service.CurrentUserService;
 import com.messaging.user.dto.CreateUserRequest;
 import com.messaging.user.entity.User;
 import com.messaging.user.repository.UserRepository;
@@ -79,6 +79,17 @@ public class UserService {
     User user =
         userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
     Media media = mediaService.getActiveOwnedMedia(parsedMediaId, userId);
+    if (media.getPurpose() != MediaPurpose.USER_PROFILE) {
+      throw new MediaException(HttpStatus.BAD_REQUEST, "MEDIA_INVALID_PURPOSE");
+    }
+    user.setProfilePicture(media);
+    return new ProfilePictureResponse(user.getId().toString(), media.getId().toString());
+  }
+
+  @Transactional
+  public ProfilePictureResponse attachUserProfilePicture(long userId, Media media) {
+    User user =
+        userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
     if (media.getPurpose() != MediaPurpose.USER_PROFILE) {
       throw new MediaException(HttpStatus.BAD_REQUEST, "MEDIA_INVALID_PURPOSE");
     }

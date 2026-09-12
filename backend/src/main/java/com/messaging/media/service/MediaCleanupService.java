@@ -6,9 +6,11 @@ import com.messaging.media.enums.MediaStatus;
 import com.messaging.media.provider.StorageProviderResolver;
 import com.messaging.media.repository.MediaRepository;
 import java.time.Instant;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -23,25 +25,33 @@ public class MediaCleanupService {
 
   public int cleanupExpiredPendingUploads() {
     Instant cutoff = Instant.now().minus(validationProperties.getPendingTtl());
+    int deleted;
+    int totalDeleted = 0;
+    do {
+      deleted = cleanupExpiredPendingUploads(cutoff, 100);
+      totalDeleted += deleted;
+    } while (deleted == 100);
+    return totalDeleted;
+  }
+
+  public int cleanupExpiredPendingUploads(Instant cutoff, int batchSize) {
+    List<Media> expired =
+        mediaRepository.findByStatusAndCreatedAtBefore(
+            MediaStatus.PENDING, cutoff, PageRequest.of(0, batchSize));
     int cleaned = 0;
-    for (Media media :
-        mediaRepository.findByStatusAndCreatedAtBefore(MediaStatus.PENDING, cutoff)) {
+    for (Media media : expired) {
       try {
-        if (storageProviderResolver
+        storageProviderResolver
             .resolve(media.getStorageProvider())
-            .getObjectMetadata(media.getBucket(), media.getObjectKey())
-            .exists()) {
-          storageProviderResolver
-              .resolve(media.getStorageProvider())
-              .delete(media.getBucket(), media.getObjectKey());
-        }
+            .delete(media.getBucket(), media.getObjectKey());
       } catch (RuntimeException exception) {
         LOGGER.warn(
             "Expired pending media cleanup storage step failed mediaId={}",
             media.getId(),
             exception);
       }
-      media.setStatus(MediaStatus.FAILED);
+      media.setStatus(MediaStatus.DELETED);
+      media.setDeletedAt(Instant.now());
       mediaRepository.saveAndFlush(media);
       cleaned++;
     }

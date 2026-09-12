@@ -19,6 +19,8 @@ public class MediaStorageProperties {
   @NotNull private StorageProviderType defaultProvider;
   @NotNull private Duration uploadUrlExpiry;
   @NotNull private Duration downloadUrlExpiry;
+  @NotNull private Duration httpConnectTimeout = Duration.ofSeconds(3);
+  @NotNull private Duration httpReadTimeout = Duration.ofSeconds(5);
   @Valid @NotNull private Supabase supabase = new Supabase();
 
   @Getter

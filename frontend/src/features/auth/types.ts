@@ -10,7 +10,8 @@ export type RegisterPayload = {
   name: string
   username: string
   password: string
-  profilePicture?: string | null
+  profilePictureMediaId?: string
+  profilePictureUploadToken?: string
 }
 
 export type LoginPayload = {

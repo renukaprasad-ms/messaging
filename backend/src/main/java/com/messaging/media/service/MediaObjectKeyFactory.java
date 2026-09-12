@@ -13,6 +13,14 @@ public class MediaObjectKeyFactory {
         .formatted(ownerUserId, purposePath(purpose), mediaId, extension.toLowerCase(Locale.ROOT));
   }
 
+  public String createTemporaryObjectKey(long ownerUserId, long mediaId, String extension) {
+    return "tmp/uploads/%d/%d.%s".formatted(ownerUserId, mediaId, extension.toLowerCase(Locale.ROOT));
+  }
+
+  public String createPreRegisterObjectKey(long mediaId, String extension) {
+    return "tmp/register/%d.%s".formatted(mediaId, extension.toLowerCase(Locale.ROOT));
+  }
+
   private String purposePath(MediaPurpose purpose) {
     return switch (purpose) {
       case USER_PROFILE -> "profile";

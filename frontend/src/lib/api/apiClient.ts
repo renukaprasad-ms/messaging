@@ -1,4 +1,4 @@
-import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import axios, { AxiosError, type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios'
 import { setAuthUser, clearAuthUser } from '../../store/user/userSlice'
 import { store } from '../../store/store'
 import type { AuthUser } from '../../features/auth/types'
@@ -6,6 +6,11 @@ import type { ApiResponse } from './types'
 
 type RetryableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean
+  _skipAuthRefresh?: boolean
+}
+
+export type ApiRequestConfig = AxiosRequestConfig & {
+  _skipAuthRefresh?: boolean
 }
 
 const configuredBaseURL = import.meta.env.VITE_API_BASE_URL
@@ -47,7 +52,13 @@ apiClient.interceptors.response.use(
     const isUnauthorized = error.response?.status === 401
     const isRefreshRequest = originalRequest?.url?.includes('/api/auth/refresh')
 
-    if (!originalRequest || !isUnauthorized || originalRequest._retry || isRefreshRequest) {
+    if (
+      !originalRequest ||
+      !isUnauthorized ||
+      originalRequest._retry ||
+      originalRequest._skipAuthRefresh ||
+      isRefreshRequest
+    ) {
       return Promise.reject(error)
     }
 
