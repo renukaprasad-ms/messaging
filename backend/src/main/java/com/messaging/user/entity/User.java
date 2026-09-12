@@ -1,13 +1,12 @@
 package com.messaging.user.entity;
 
+import com.messaging.common.id.IdGenerator;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -25,8 +24,7 @@ import lombok.Setter;
 public class User {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  private UUID id;
+  private Long id;
 
   @Column(nullable = false, unique = true, length = 320)
   private String email;
@@ -48,4 +46,11 @@ public class User {
 
   @Column(name = "two_factor_enabled", nullable = false)
   private boolean twoFactorEnabled;
+
+  @PrePersist
+  private void assignId() {
+    if (id == null) {
+      id = IdGenerator.nextId();
+    }
+  }
 }
