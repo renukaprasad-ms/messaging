@@ -14,13 +14,19 @@ Usage:
   ./k8s.sh restart
   ./k8s.sh delete
   ./k8s.sh logs <service> [tail]
+  ./k8s.sh describe <service>
+  ./k8s.sh top [interval_seconds] [stream|once]
 
-Services for logs:
+Services:
   backend | frontend | postgres | redis | kafka
 
 Examples:
   ./k8s.sh logs backend
   ./k8s.sh logs kafka 200
+  ./k8s.sh describe backend
+  ./k8s.sh top
+  ./k8s.sh top 5
+  ./k8s.sh top 1 once
 EOF
 }
 
@@ -115,24 +121,82 @@ delete_all() {
   kubectl get pods
 }
 
-logs() {
+selector_for_service() {
   local service="${1:-}"
-  local tail="${2:-100}"
-  local selector
 
   case "${service}" in
-    backend) selector="app=messaging-backend" ;;
-    frontend) selector="app=messaging-frontend" ;;
-    postgres) selector="app=postgres" ;;
-    redis) selector="app=redis" ;;
-    kafka) selector="app=kafka" ;;
+    backend) echo "app=messaging-backend" ;;
+    frontend) echo "app=messaging-frontend" ;;
+    postgres) echo "app=postgres" ;;
+    redis) echo "app=redis" ;;
+    kafka) echo "app=kafka" ;;
     *)
       usage
       exit 1
       ;;
   esac
+}
+
+logs() {
+  local service="${1:-}"
+  local tail="${2:-100}"
+  local selector
+
+  selector="$(selector_for_service "${service}")"
 
   kubectl logs -l "${selector}" --tail="${tail}" -f
+}
+
+describe() {
+  local service="${1:-}"
+  local selector
+
+  selector="$(selector_for_service "${service}")"
+
+  kubectl describe pods -l "${selector}"
+}
+
+render_top() {
+  clear
+  date
+  echo
+  echo "Pods"
+  kubectl get pods -o wide
+  echo
+  echo "Services"
+  kubectl get svc
+  echo
+  echo "Workloads"
+  kubectl get statefulset,deployment
+  echo
+  echo "Resource Usage"
+  kubectl top pods 2>/dev/null || echo "metrics-server is not available"
+}
+
+top_view() {
+  local interval="${1:-1}"
+  local mode="${2:-stream}"
+
+  if ! [[ "${interval}" =~ ^[0-9]+$ ]] || [[ "${interval}" -lt 1 ]]; then
+    echo "interval_seconds must be a positive number" >&2
+    exit 1
+  fi
+
+  case "${mode}" in
+    stream)
+      while true; do
+        render_top
+        sleep "${interval}"
+      done
+      ;;
+    once)
+      render_top
+      ;;
+    *)
+      echo "mode must be stream or once" >&2
+      exit 1
+      ;;
+  esac
 }
 
 command="${1:-}"
@@ -142,5 +206,7 @@ case "${command}" in
   restart) restart ;;
   delete) delete_all ;;
   logs) shift; logs "$@" ;;
+  describe) shift; describe "$@" ;;
+  top) shift; top_view "$@" ;;
   *) usage; exit 1 ;;
 esac

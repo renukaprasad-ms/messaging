@@ -6,6 +6,10 @@ You can run the local k3s flow from the root helper:
 chmod +x k8s.sh
 ./k8s.sh start
 ./k8s.sh logs backend 200
+./k8s.sh describe backend
+./k8s.sh top
+./k8s.sh top 5
+./k8s.sh top 1 once
 ./k8s.sh restart
 ./k8s.sh stop
 ./k8s.sh delete
